@@ -2,6 +2,7 @@ import ChatWidget from "./components/ChatWidget";
 import type { Attachment } from "./types";
 
 function App() {
+
   const handleSendMessage = async (
     message: string,
     attachments?: File[],
@@ -113,12 +114,15 @@ function App() {
         onSendMessage={handleSendMessage}
         onFileUpload={handleFileUpload}
         quickButtons={quickButtons}
+        wsUrl="ws://localhost:8000/ws/chat"
+        sessionApiUrl="http://localhost:8000/api/v1/chat/session"
         primaryColor="#41372c"
         position="bottom-right"
         showTimestamp={true}
         acceptFileTypes="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
         maxFileSize={10 * 1024 * 1024}
         maxFiles={5}
+        allowFileUpload={true}
       />
     </div>
   );

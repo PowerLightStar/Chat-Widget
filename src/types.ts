@@ -38,10 +38,17 @@ export interface ChatWidgetProps {
   primaryColor?: string;
   position?: 'bottom-right' | 'bottom-left';
   width?: string;
+  height?: string;
   showTimestamp?: boolean;
   initiallyOpen?: boolean;
   acceptFileTypes?: string;
   maxFileSize?: number; // in bytes
   maxFiles?: number;
   allowFileUpload?: boolean;
+  wsUrl?: string;
+  sessionId?: string;
+  sessionApiUrl?: string;
+  onWsMessage?: (message: any) => void;
+  onWsOpen?: () => void;
+  onWsClose?: () => void;
 }

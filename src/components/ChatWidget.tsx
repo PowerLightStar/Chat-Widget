@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
+
 import type { Message, ChatWidgetProps, Attachment } from "../types";
 import MessageBubble from "./MessageBubble";
 import QuickButtons from "./QuickButtons";
 import FileUpload from "./FileUpload";
 import FileAttachment from "./FileAttachment";
+
 import { IoMdSend } from "react-icons/io";
 import { MdOutlineClose } from "react-icons/md";
 import { IoChatbubbleEllipsesOutline } from "react-icons/io5";
@@ -24,6 +26,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   quickButtons = [],
   primaryColor = "#41372c",
   position = "bottom-right",
+  height = "80vh",
   width = "25vw",
   showTimestamp = true,
   initiallyOpen = false,
@@ -31,6 +34,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   maxFileSize = 10 * 1024 * 1024,
   maxFiles = 5,
   allowFileUpload = false,
+  wsUrl,
+  sessionId: defaultSessionId,
+  sessionApiUrl,
+  onWsMessage,
+  onWsOpen,
+  onWsClose,
 }) => {
   const [isOpen, setIsOpen] = useState(initiallyOpen);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,16 +49,26 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>(
     [],
   );
+  const [sessionId, setSessionId] = useState<string | null>(defaultSessionId || null);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [dynamicQuickButtons, setDynamicQuickButtons] = useState(quickButtons);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const inactivityTimeoutRef = useRef<number | null>(null);
 
+  // Optionally, remove default greeting so websocket-driven replies show only
   useEffect(() => {
-    addBotMessage("Hello! How can I help you today?");
-  }, []);
+    // No default greeting - rely on websocket messages only
+  }, [wsUrl]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    setDynamicQuickButtons(quickButtons);
+  }, [quickButtons]);
 
   useEffect(() => {
     if (!isOpen && messages.length > 0) {
@@ -59,6 +78,51 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       }
     }
   }, [messages, isOpen]);
+
+  useEffect(() => {
+    const storedId = localStorage.getItem("chatSessionId");
+    if (storedId) {
+      setSessionId(storedId);
+      updateActivity(); // Start inactivity timer
+    }
+  }, []);
+
+  const updateActivity = () => {
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current);
+    }
+    inactivityTimeoutRef.current = setTimeout(() => {
+      localStorage.removeItem("chatSessionId");
+      setSessionId(null);
+    }, 60000); // 1 minute
+  };
+
+  useEffect(() => {
+    return () => {
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const createSession = async () => {
+    if (sessionId || !sessionApiUrl) return;
+    try {
+      const res = await fetch(sessionApiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: "anonymous" }),
+      });
+      const data = await res.json();
+      if (data?.id) {
+        setSessionId(data.id);
+        localStorage.setItem("chatSessionId", data.id);
+        updateActivity(); // Start inactivity timer
+      }
+    } catch (error) {
+      console.warn("Failed to create session:", error);
+    }
+  };
 
   useEffect(() => {
     if (isOpen && unreadCount > 0) {
@@ -72,6 +136,89 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       );
     }
   }, [isOpen, unreadCount]);
+
+  useEffect(() => {
+    if (!wsUrl || !isOpen) return;
+
+    // only connect when chat is open
+    let wsEndpoint = wsUrl;
+    if (sessionId) {
+      if (wsUrl.includes("{session_id}")) {
+        wsEndpoint = wsUrl.replace("{session_id}", sessionId);
+      } else if (!wsUrl.includes(sessionId)) {
+        wsEndpoint = wsUrl.endsWith("/") ? `${wsUrl}${sessionId}` : `${wsUrl}/${sessionId}`;
+      }
+    }
+
+    const ws = new WebSocket(wsEndpoint);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setWsConnected(true);
+      console.log("WebSocket connected to", wsEndpoint);
+      onWsOpen && onWsOpen();
+    };
+
+    ws.onmessage = (event) => {
+      let data;
+      try {
+        data = JSON.parse(event.data);
+      } catch (err) {
+        console.warn("Invalid WS message", event.data);
+        return;
+      }
+
+      updateActivity(); // Reset inactivity timer on WS message
+
+      onWsMessage && onWsMessage(data);
+      
+      console.log("Received WS message:", data);
+
+      if (data.type === "typing_indicator") {
+        setIsTyping(data.is_typing || false);
+      }
+
+      if (data.type === "agent_message") {
+        if (data.content) {
+          addBotMessage(data.content, data.attachments);
+        }
+        // Handle quick buttons from agent_message if options are present
+        if (data.options && Array.isArray(data.options) && data.options.length > 0) {
+          const mapped = data.options.map((opt: any) => ({
+            label: opt.label || String(opt),
+            value: opt.value ?? opt.id ?? opt.label ?? String(opt)
+          }));
+          setDynamicQuickButtons(mapped);
+        } else {
+          // Clear quick buttons if no options
+          setDynamicQuickButtons([]);
+        }
+      }
+
+      if (data.type === "interactive_request" && Array.isArray(data.options)) {
+        const mapped = data.options.map((opt: any) => ({
+          label: opt.label || String(opt),
+          value: opt.value ?? opt.id ?? opt.label ?? String(opt)
+        }));
+        setDynamicQuickButtons(mapped);
+      }
+    };
+
+    ws.onclose = () => {
+      setWsConnected(false);
+      onWsClose && onWsClose();
+    };
+
+    ws.onerror = (err) => {
+      console.error("WebSocket error", err);
+    };
+
+    return () => {
+      ws.close();
+      wsRef.current = null;
+      setWsConnected(false);
+    };
+  }, [wsUrl, sessionId, onWsMessage, onWsOpen, onWsClose]);
 
   const addBotMessage = (text: string, attachments?: Attachment[]) => {
     const newMessage: Message = {
@@ -201,6 +348,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const handleSendMessage = async () => {
     if (!inputMessage.trim() && pendingAttachments.length === 0) return;
 
+    updateActivity(); // Reset inactivity timer on send
+
     const userMessage = inputMessage;
     const attachments = [...pendingAttachments];
 
@@ -211,7 +360,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
     setInputMessage("");
     setPendingAttachments([]);
-    
+
     // Reset textarea height to original
     setTimeout(() => {
       const textarea = inputRef.current;
@@ -219,24 +368,34 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         textarea.style.height = "auto";
       }
     }, 0);
+
     setIsTyping(true);
 
+    console.log("ws Connected:", wsConnected, "WS Ref:", wsRef.current); // Debug log
+    
+    if (wsConnected && wsRef.current) {
+      console.log("Sending WS message:", userMessage, attachments);
+      wsRef.current.send(
+        JSON.stringify({
+          type: "user_message",
+          content: userMessage,
+          message_id: String(Date.now()),
+        })
+      );
+      return;
+    }
+
+    if (!onSendMessage) {
+      setIsTyping(false);
+      return;
+    }
+
     try {
-      let response: string | { text: string; attachments?: Attachment[] };
+      const files = attachments
+        .filter((att) => att.status === "uploaded")
+        .map((att) => new File([], att.name, { type: att.type }));
 
-      if (onSendMessage) {
-        const files = attachments
-          .filter((att) => att.status === "uploaded")
-          .map((att) => new File([], att.name, { type: att.type }));
-
-        response = await onSendMessage(userMessage, files);
-      } else {
-        let responseText = `I received: "${userMessage}"`;
-        if (attachments.length > 0) {
-          responseText += `\n\n📎 Attachments: ${attachments.map((a) => a.name).join(", ")}`;
-        }
-        response = responseText;
-      }
+      const response = await onSendMessage(userMessage, files);
 
       if (typeof response === "string") {
         addBotMessage(response);
@@ -251,15 +410,32 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   const handleQuickButtonClick = (value: string) => {
+    updateActivity(); // Reset inactivity timer on quick button click
+
     if (onQuickButtonClick) {
       onQuickButtonClick(value);
     }
+
     addUserMessage(value);
-    setIsTyping(true);
-    setTimeout(() => {
-      addBotMessage(`You selected: ${value}. How can I assist further?`);
-      setIsTyping(false);
-    }, 500);
+
+    if (wsConnected && wsRef.current) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: "user_message",
+          content: value,
+          message_id: String(Date.now()),
+        }),
+      );
+    } else {
+      setIsTyping(true);
+      setTimeout(() => {
+        addBotMessage(`You selected: ${value}. How can I assist further?`);
+        setIsTyping(false);
+      }, 500);
+    }
+
+    // clear dynamic quick buttons after selection
+    setDynamicQuickButtons(quickButtons);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -296,8 +472,18 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     }, 0);
   };
 
-  const toggleChat = () => {
-    setIsOpen(!isOpen);
+  const toggleChat = async () => {
+    if (!isOpen) {
+      // Only create session when opening chat
+      console.log("Opening chat, sessionId:", sessionId);
+      if (!sessionId) {
+        await createSession();
+      }
+      updateActivity(); // Reset inactivity timer on open
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
   };
 
   const positionClasses = {
@@ -311,8 +497,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     >
       {isOpen && (
         <div
-          className="bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden animate-slide-up flex-1"
-          style={{ width }}
+          className="bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden animate-slide-up"
+          style={{ width, height }}
         >
           {/* Header */}
           <div
@@ -320,9 +506,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             style={{ backgroundColor: primaryColor }}
           >
             <div className="flex items-center gap-2">
-              <span className="text-2xl">
-                {typeof botAvatar === 'string' ? botAvatar : React.createElement(botAvatar)}
-              </span>
+              <div className="relative">
+                <span className="text-2xl">
+                  {typeof botAvatar === 'string' ? botAvatar : React.createElement(botAvatar)}
+                </span>
+                <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-white" />
+              </div>
               <div>
                 <h3 className="m-0 text-base font-semibold">{title}</h3>
                 <p className="m-0 text-xs opacity-90">{subtitle}</p>
@@ -337,7 +526,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2.5 max-h-100">
+          <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
             {messages.map((message) => (
               <MessageBubble
                 key={message.id}
@@ -369,9 +558,9 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           )}
 
           {/* Quick Buttons */}
-          {quickButtons.length > 0 && (
+          {dynamicQuickButtons.length > 0 && (
             <QuickButtons
-              buttons={quickButtons}
+              buttons={dynamicQuickButtons}
               onButtonClick={handleQuickButtonClick}
             />
           )}
