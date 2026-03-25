@@ -109,8 +109,6 @@ function App() {
       <ChatWidget
         title="Customer Support"
         subtitle="We usually reply within minutes"
-        botAvatar="🤖"
-        userAvatar="👤"
         placeholder="Type your message or attach files..."
         onSendMessage={handleSendMessage}
         onFileUpload={handleFileUpload}

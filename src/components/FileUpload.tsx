@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { RiAttachment2 } from "react-icons/ri";
 
 interface FileUploadProps {
   onFileSelect: (files: File[]) => void;
@@ -46,15 +47,15 @@ const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   return (
-    <div className="relative inline-flex items-center">
+    <div className="relative inline-flex items-center shrink-0">
       <button
         type="button"
-        className="p-2 rounded-lg hover:bg-gray-100 transition-colors opacity-70 hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
+        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors opacity-70 hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
         onClick={() => fileInputRef.current?.click()}
         disabled={disabled}
         title="Attach file"
       >
-        📎
+        <RiAttachment2 />
       </button>
       <input
         ref={fileInputRef}

@@ -1,3 +1,5 @@
+import type { IconType } from 'react-icons';
+
 export interface Message {
   id: string;
   text: string;
@@ -26,8 +28,8 @@ export interface QuickButton {
 export interface ChatWidgetProps {
   title?: string;
   subtitle?: string;
-  botAvatar?: string;
-  userAvatar?: string;
+  botAvatar?: string | IconType;
+  userAvatar?: string | IconType;
   placeholder?: string;
   onSendMessage?: (message: string, attachments?: File[]) => Promise<string | { text: string; attachments?: Attachment[] }>;
   onFileUpload?: (file: File) => Promise<Attachment>;
@@ -35,11 +37,11 @@ export interface ChatWidgetProps {
   quickButtons?: QuickButton[];
   primaryColor?: string;
   position?: 'bottom-right' | 'bottom-left';
-  height?: string;
   width?: string;
   showTimestamp?: boolean;
   initiallyOpen?: boolean;
   acceptFileTypes?: string;
   maxFileSize?: number; // in bytes
   maxFiles?: number;
+  allowFileUpload?: boolean;
 }
