@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Attachment } from '../types';
+import type { Attachment } from '../types/types';
 
 interface FileAttachmentProps {
   attachment: Attachment;

@@ -1,9 +1,22 @@
-import ChatWidget from "./components/ChatWidget";
-import type { Attachment } from "./types";
+import { useRef } from 'react';
+
+import ChatWidget, {
+  ChatWidgetProvider,
+  useChatWidgetController,
+} from './components/chatWidget';
+import useWebSocketChatTransport from './hooks/useChatTransport';
+import type { Attachment, ChatWidgetSendPayload } from './components/chatWidget/types/types';
+
+const DEFAULT_QUICK_BUTTONS = [
+  {
+    label: 'Contact Support',
+    value: 'I want to contact support',
+    selectionMode: 'single' as const,
+  },
+];
 
 function App() {
-
-  const handleSendMessage = async (
+  const handleFallbackMessage = async (
     message: string,
     attachments?: File[],
   ): Promise<string | { text: string; attachments?: Attachment[] }> => {
@@ -28,18 +41,8 @@ function App() {
     }
 
     const responses: Record<string, string> = {
-      hello: "Hi there! How can I help you today?",
-      help: "I can help you with orders, shipping, or general questions. You can also send me files!",
-      order: "Please provide your order number and I'll check the status.",
       default: "Thanks for your message! Our team will get back to you soon.",
     };
-
-    const lowerMessage = message.toLowerCase();
-    for (const [key, response] of Object.entries(responses)) {
-      if (lowerMessage.includes(key)) {
-        return response;
-      }
-    }
 
     return responses.default;
   };
@@ -57,12 +60,65 @@ function App() {
     };
   };
 
-  const quickButtons = [
-    { label: "🖼️ Send Image", value: "I want to send an image" },
-    { label: "📄 Send Document", value: "I want to share a document" },
-    { label: "❓ Help", value: "I need help with something" },
-    { label: "📞 Contact Support", value: "I want to contact support" },
-  ];
+  const transportRef = useRef<{
+    sendMessage: (payload: ChatWidgetSendPayload) => Promise<boolean>;
+    sendQuickButton: (value: string | string[]) => Promise<boolean>;
+    createSession: () => Promise<string | null>;
+  }>({
+    sendMessage: async () => false,
+    sendQuickButton: async () => false,
+    createSession: async () => null,
+  });
+
+  const controller = useChatWidgetController({
+    quickButtons: DEFAULT_QUICK_BUTTONS,
+    maxFiles: 5,
+    onOpenChange: async (isOpen) => {
+      if (isOpen) {
+        await transportRef.current.createSession();
+      }
+    },
+    onFileUpload: handleFileUpload,
+    onSendMessage: async (
+      payload,
+      api,
+    ) => {
+      const sentThroughWebSocket = await transportRef.current.sendMessage(payload);
+      if (sentThroughWebSocket) {
+        return;
+      }
+
+      api.setTyping(true);
+
+      try {
+        const response = await handleFallbackMessage(payload.text, payload.files);
+        return typeof response === 'string'
+          ? response
+          : { text: response.text, attachments: response.attachments };
+      } finally {
+        api.setTyping(false);
+      }
+    },
+    onQuickButtonClick: async (value, api) => {
+      const sentThroughWebSocket = await transportRef.current.sendQuickButton(value);
+      if (sentThroughWebSocket) {
+        return;
+      }
+
+      const selectedText = Array.isArray(value) ? value.join(', ') : value;
+      api.setTyping(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      api.addBotMessage(`You selected: ${selectedText}. How can I assist further?`);
+      api.setTyping(false);
+    },
+  });
+
+  const transport = useWebSocketChatTransport({
+    controller,
+    wsUrl: 'ws://localhost:8000/ws/chat',
+    sessionApiUrl: 'http://localhost:8000/api/v1/chat/session',
+  });
+  transportRef.current = transport;
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
@@ -107,23 +163,20 @@ function App() {
         </div>
       </div>
 
-      <ChatWidget
-        title="Customer Support"
-        subtitle="We usually reply within minutes"
-        placeholder="Type your message or attach files..."
-        onSendMessage={handleSendMessage}
-        onFileUpload={handleFileUpload}
-        quickButtons={quickButtons}
-        wsUrl="ws://localhost:8000/ws/chat"
-        sessionApiUrl="http://localhost:8000/api/v1/chat/session"
-        primaryColor="#41372c"
-        position="bottom-right"
-        showTimestamp={true}
-        acceptFileTypes="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
-        maxFileSize={10 * 1024 * 1024}
-        maxFiles={5}
-        allowFileUpload={true}
-      />
+      <ChatWidgetProvider value={controller}>
+        <ChatWidget
+          title="Customer Support"
+          subtitle="We usually reply within minutes"
+          placeholder="Type your message or attach files..."
+          primaryColor="#41372c"
+          position="bottom-right"
+          showTimestamp={true}
+          acceptFileTypes="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
+          maxFileSize={10 * 1024 * 1024}
+          maxFiles={5}
+          allowFileUpload={true}
+        />
+      </ChatWidgetProvider>
     </div>
   );
 }
