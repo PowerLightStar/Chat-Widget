@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useRef } from 'react';
 import type { ChatWidgetProps } from './types/types';
 import FileAttachment from './_components/FileAttachment';
 import FileUpload from './_components/FileUpload';
-import MessageBubble from './_components/MessageBubble';
+import MessageBubble, { renderChatAvatar } from './_components/MessageBubble';
 import QuickButtons from './_components/QuickButtons';
 import { ChatWidgetContext } from './useContext';
 
@@ -30,6 +30,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   maxFileSize = 10 * 1024 * 1024,
   maxFiles = 5,
   allowFileUpload = false,
+  isConnected = false,
 }) => {
   const contextController = useContext(ChatWidgetContext);
   const chat = controller ?? contextController;
@@ -91,12 +92,15 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
           >
             <div className="flex items-center gap-2">
               <div className="relative">
-                <span className="text-2xl">
-                  {typeof botAvatar === 'string'
-                    ? botAvatar
-                    : React.createElement(botAvatar)}
+                <span className="text-2xl flex items-center justify-center">
+                  {renderChatAvatar(botAvatar)}
                 </span>
-                <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-white" />
+                <span
+                  className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                    isConnected ? 'bg-green-500' : 'bg-gray-400'
+                  }`}
+                  title={isConnected ? 'Connected' : 'Disconnected'}
+                />
               </div>
               <div>
                 <h3 className="m-0 text-base font-semibold">{title}</h3>
@@ -152,38 +156,40 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             />
           )}
 
-          <div className="px-4 py-2 m-2 border-t border-gray-200 flex gap-3 items-center bg-gray-50 rounded-full">
-            {allowFileUpload && (
-              <FileUpload
-                onFileSelect={chat.handleFileSelect}
-                accept={acceptFileTypes}
-                multiple={true}
-                maxSize={maxFileSize}
-                disabled={chat.pendingAttachments.length >= maxFiles}
+          {!chat.isInteractiveMode && (
+            <div className="px-4 py-2 m-2 border-t border-gray-200 flex gap-3 items-center bg-gray-50 rounded-full">
+              {allowFileUpload && (
+                <FileUpload
+                  onFileSelect={chat.handleFileSelect}
+                  accept={acceptFileTypes}
+                  multiple={true}
+                  maxSize={maxFileSize}
+                  disabled={chat.pendingAttachments.length >= maxFiles}
+                />
+              )}
+              <textarea
+                ref={inputRef}
+                value={chat.inputMessage}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholder}
+                rows={1}
+                className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 resize-none max-h-24 overflow-y-auto"
+                style={{ lineHeight: '1.5rem', minHeight: '1.5rem' }}
               />
-            )}
-            <textarea
-              ref={inputRef}
-              value={chat.inputMessage}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder={placeholder}
-              rows={1}
-              className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 resize-none max-h-24 overflow-y-auto"
-              style={{ lineHeight: '1.5rem', minHeight: '1.5rem' }}
-            />
-            <button
-              onClick={chat.sendMessage}
-              disabled={
-                !chat.inputMessage.trim() && chat.pendingAttachments.length === 0
-              }
-              className="p-2 rounded-full transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-              style={{ color: primaryColor }}
-              title="Send message"
-            >
-              <IoMdSend />
-            </button>
-          </div>
+              <button
+                onClick={chat.sendMessage}
+                disabled={
+                  !chat.inputMessage.trim() && chat.pendingAttachments.length === 0
+                }
+                className="p-2 rounded-full transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                style={{ color: primaryColor }}
+                title="Send message"
+              >
+                <IoMdSend />
+              </button>
+            </div>
+          )}
         </div>
       )}
 

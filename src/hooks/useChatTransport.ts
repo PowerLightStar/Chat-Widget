@@ -2,27 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type {
   Attachment,
+  ChatWidgetWsInboundMessage,
+  ChatWidgetWsInteractiveRequestMessage,
   ChatWidgetController,
   ChatWidgetSendPayload,
   QuickButton,
+  WsHistoryMessage,
 } from '../components/chatWidget/types/types';
 
-interface WebSocketTransportMessage {
-  type?: string;
-  content?: string;
-  attachments?: Attachment[];
-  options?: Array<
-    string | {
-      id?: string;
-      label?: string;
-      value?: string;
-      selectionMode?: 'single' | 'multiple';
-      multi_select?: boolean;
-      allow_multiple?: boolean;
-    }
-  >;
-  is_typing?: boolean;
-}
+type InteractiveOption = ChatWidgetWsInteractiveRequestMessage['options'];
 
 interface UseWebSocketChatTransportOptions {
   controller: ChatWidgetController;
@@ -34,11 +22,12 @@ interface UseWebSocketChatTransportOptions {
   userId?: string;
   onWsOpen?: () => void;
   onWsClose?: () => void;
-  onWsMessage?: (message: WebSocketTransportMessage) => void;
+  onWsMessage?: (message: ChatWidgetWsInboundMessage) => void;
 }
 
 const toQuickButtons = (
-  options: WebSocketTransportMessage['options'],
+  options: InteractiveOption,
+  interactiveType?: ChatWidgetWsInteractiveRequestMessage['interactive_type'],
 ): QuickButton[] => {
   if (!Array.isArray(options)) {
     return [];
@@ -46,12 +35,17 @@ const toQuickButtons = (
 
   return options.map((option) => {
     if (typeof option === 'string') {
-      return { label: option, value: option };
+      return {
+        label: option,
+        value: option,
+        selectionMode: interactiveType === 'multi_select' ? 'multiple' : 'single',
+      };
     }
 
     const label = option.label ?? option.value ?? option.id ?? 'Select';
     const value = option.value ?? option.id ?? label;
     const selectionMode =
+      interactiveType === 'multi_select' ||
       option.selectionMode === 'multiple' ||
       option.multi_select ||
       option.allow_multiple
@@ -60,6 +54,20 @@ const toQuickButtons = (
 
     return { label, value, selectionMode };
   });
+};
+
+const getHistoryText = (entry: WsHistoryMessage): string => {
+  if (typeof entry.content === 'string') {
+    return entry.content;
+  }
+  if (typeof entry.text === 'string') {
+    return entry.text;
+  }
+  return '';
+};
+
+const isUserHistoryMessage = (entry: WsHistoryMessage): boolean => {
+  return entry.sender === 'user' || entry.role === 'user' || entry.type === 'user_message';
 };
 
 const buildWsEndpoint = (wsUrl: string, sessionId: string | null) => {
@@ -105,6 +113,14 @@ export const useWebSocketChatTransport = ({
   const wsRef = useRef<WebSocket | null>(null);
   const inactivityTimeoutRef = useRef<number | null>(null);
   const controllerRef = useRef(controller);
+  const pendingInteractiveRequestIdRef = useRef<string | null>(null);
+  const initializedSessionIdRef = useRef<string | null>(null);
+
+  const clearInteractiveState = useCallback(() => {
+    controllerRef.current.setInteractiveMode(false);
+    controllerRef.current.setQuickButtons([]);
+    pendingInteractiveRequestIdRef.current = null;
+  }, []);
 
   useEffect(() => {
     controllerRef.current = controller;
@@ -180,10 +196,10 @@ export const useWebSocketChatTransport = ({
     };
 
     ws.onmessage = (event) => {
-      let data: WebSocketTransportMessage;
+      let data: ChatWidgetWsInboundMessage;
 
       try {
-        data = JSON.parse(event.data) as WebSocketTransportMessage;
+        data = JSON.parse(event.data) as ChatWidgetWsInboundMessage;
       } catch {
         console.warn('Invalid WS message:', event.data);
         return;
@@ -196,21 +212,65 @@ export const useWebSocketChatTransport = ({
         controllerRef.current.setTyping(Boolean(data.is_typing));
       }
 
+      if (data.type === 'session_init') {
+        const sessionInitId =
+          typeof data.session_id === 'string' ? data.session_id : null;
+
+        if (sessionInitId) {
+          setSessionId(sessionInitId);
+          localStorage.setItem(storageKey, sessionInitId);
+        }
+
+        if (
+          Array.isArray(data.history) &&
+          sessionInitId &&
+          initializedSessionIdRef.current !== sessionInitId
+        ) {
+          initializedSessionIdRef.current = sessionInitId;
+          for (const entry of data.history) {
+            const text = getHistoryText(entry);
+            if (!text) {
+              continue;
+            }
+
+            if (isUserHistoryMessage(entry)) {
+              controllerRef.current.addUserMessage(text, entry.attachments as Attachment[] | undefined);
+            } else {
+              controllerRef.current.addBotMessage(text, entry.attachments as Attachment[] | undefined);
+            }
+          }
+        }
+      }
+
       if (data.type === 'agent_message') {
+        clearInteractiveState();
         controllerRef.current.setTyping(false);
         if (data.content) {
           controllerRef.current.addBotMessage(data.content, data.attachments);
         }
-
-        if (data.options?.length) {
-          controllerRef.current.setQuickButtons(toQuickButtons(data.options));
-        } else {
-          controllerRef.current.setQuickButtons([]);
-        }
       }
 
       if (data.type === 'interactive_request' && data.options?.length) {
-        controllerRef.current.setQuickButtons(toQuickButtons(data.options));
+        controllerRef.current.setInteractiveMode(true);
+        pendingInteractiveRequestIdRef.current =
+          typeof data.id === 'string'
+            ? data.id
+            : typeof data.request_id === 'string'
+              ? data.request_id
+              : null;
+        controllerRef.current.setQuickButtons(
+          toQuickButtons(data.options, data.interactive_type),
+        );
+      } else if (data.type === 'interactive_request') {
+        clearInteractiveState();
+      }
+
+      if (data.type === 'error') {
+        clearInteractiveState();
+        controllerRef.current.setTyping(false);
+        controllerRef.current.addBotMessage(
+          data.error || 'Something went wrong. Please try again.',
+        );
       }
     };
 
@@ -231,6 +291,7 @@ export const useWebSocketChatTransport = ({
   }, [
     controller.isOpen,
     onWsClose,
+    clearInteractiveState,
     onWsMessage,
     onWsOpen,
     sessionId,
@@ -263,14 +324,25 @@ export const useWebSocketChatTransport = ({
     touchActivity();
     controllerRef.current.setTyping(true);
     const selections = Array.isArray(value) ? value : [value];
-    wsRef.current.send(
-      JSON.stringify({
-        type: 'user_message',
-        content: selections.join(', '),
-        selections,
-        message_id: String(Date.now()),
-      }),
-    );
+    const requestId = pendingInteractiveRequestIdRef.current;
+    if (requestId) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: 'interactive_response',
+          request_id: requestId,
+          selections,
+        }),
+      );
+      pendingInteractiveRequestIdRef.current = null;
+    } else {
+      wsRef.current.send(
+        JSON.stringify({
+          type: 'user_message',
+          content: selections.join(', '),
+          message_id: String(Date.now()),
+        }),
+      );
+    }
     return true;
   };
 

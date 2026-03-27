@@ -1,4 +1,7 @@
+import type { ReactElement } from 'react';
 import type { IconType } from 'react-icons';
+
+export type ChatWidgetAvatar = string | IconType | ReactElement;
 
 export interface Message {
   id: string;
@@ -44,6 +47,7 @@ export interface ChatControllerApi {
   setTyping: (value: boolean) => void;
   setQuickButtons: (buttons: QuickButton[]) => void;
   resetQuickButtons: () => void;
+  setInteractiveMode: (value: boolean) => void;
 }
 
 export interface ChatWidgetController extends ChatControllerApi {
@@ -56,6 +60,7 @@ export interface ChatWidgetController extends ChatControllerApi {
   quickButtons: QuickButton[];
   selectedQuickButtonValues: string[];
   isQuickButtonMultiSelect: boolean;
+  isInteractiveMode: boolean;
   openChat: () => void;
   closeChat: () => void;
   toggleChat: () => void;
@@ -96,8 +101,8 @@ export interface UseChatWidgetControllerOptions {
 export interface ChatWidgetProps {
   title?: string;
   subtitle?: string;
-  botAvatar?: string | IconType;
-  userAvatar?: string | IconType;
+  botAvatar?: ChatWidgetAvatar;
+  userAvatar?: ChatWidgetAvatar;
   placeholder?: string;
   controller?: ChatWidgetController;
   primaryColor?: string;
@@ -110,4 +115,83 @@ export interface ChatWidgetProps {
   maxFileSize?: number; // in bytes
   maxFiles?: number;
   allowFileUpload?: boolean;
+  isConnected?: boolean;
 }
+
+export type ChatWidgetWsMessageType =
+  | 'user_message'
+  | 'agent_message'
+  | 'interactive_request'
+  | 'interactive_response'
+  | 'typing_indicator'
+  | 'error'
+  | 'session_init';
+
+export interface WsHistoryMessage {
+  id?: string;
+  message_id?: string;
+  type?: string;
+  sender?: 'user' | 'bot' | 'assistant' | 'agent';
+  role?: 'user' | 'assistant' | 'agent';
+  content?: string;
+  text?: string;
+  timestamp?: string;
+  attachments?: Attachment[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface ChatWidgetWsSessionInitMessage {
+  type: 'session_init';
+  session_id: string;
+  timestamp: string;
+  history: WsHistoryMessage[];
+}
+
+export interface ChatWidgetWsTypingIndicatorMessage {
+  type: 'typing_indicator';
+  is_typing?: boolean;
+  timestamp?: string;
+}
+
+export interface ChatWidgetWsAgentMessage {
+  type: 'agent_message';
+  id?: string;
+  content?: string;
+  timestamp?: string;
+  attachments?: Attachment[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface ChatWidgetWsInteractiveRequestMessage {
+  type: 'interactive_request';
+  interactive_type?: 'single_select' | 'multi_select';
+  id?: string;
+  request_id?: string;
+  question?: string;
+  options?: Array<
+    string | {
+      id?: string;
+      label?: string;
+      value?: string;
+      selectionMode?: 'single' | 'multiple';
+      multi_select?: boolean;
+      allow_multiple?: boolean;
+    }
+  >;
+  timeout?: number;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+export interface ChatWidgetWsErrorMessage {
+  type: 'error';
+  error?: string;
+  timestamp?: string;
+}
+
+export type ChatWidgetWsInboundMessage =
+  | ChatWidgetWsSessionInitMessage
+  | ChatWidgetWsTypingIndicatorMessage
+  | ChatWidgetWsAgentMessage
+  | ChatWidgetWsInteractiveRequestMessage
+  | ChatWidgetWsErrorMessage;

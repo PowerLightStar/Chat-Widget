@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import logo from './assets/logo.svg';
 
 import ChatWidget, {
   ChatWidgetProvider,
@@ -165,8 +166,10 @@ function App() {
 
       <ChatWidgetProvider value={controller}>
         <ChatWidget
-          title="Customer Support"
-          subtitle="We usually reply within minutes"
+          title="Murphy AI"
+          subtitle="Customer support, We usually reply within minutes"
+          isConnected={transport.wsConnected}
+          botAvatar={<img src={logo} alt="Bot Avatar" className="w-12 h-12 rounded-full" />}
           placeholder="Type your message or attach files..."
           primaryColor="#41372c"
           position="bottom-right"

@@ -1,11 +1,21 @@
 import React from 'react';
-import type { Message } from '../types/types';
+import type { Message, ChatWidgetAvatar } from '../types/types';
 import FileAttachment from './FileAttachment';
 import type { IconType } from 'react-icons';
 
+export const renderChatAvatar = (avatar: ChatWidgetAvatar): React.ReactNode => {
+  if (typeof avatar === 'string') {
+    return avatar;
+  }
+  if (React.isValidElement(avatar)) {
+    return avatar;
+  }
+  return React.createElement(avatar as IconType);
+};
+
 interface MessageBubbleProps {
   message: Message;
-  avatar: string | IconType;
+  avatar: ChatWidgetAvatar;
   showTimestamp: boolean;
 }
 
@@ -23,7 +33,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       message.sender === 'user' ? 'flex-row-reverse' : ''
     }`}>
       <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-lg shrink-0 text-[2rem] text-[#41372c]">
-        {typeof avatar === 'string' ? avatar : React.createElement(avatar)}
+        {renderChatAvatar(avatar)}
       </div>
       <div className={`max-w-[70%] ${message.sender === 'user' ? 'items-end' : ''}`}>
         {message.text && (

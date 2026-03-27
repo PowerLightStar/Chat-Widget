@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type {
   Attachment,
@@ -75,6 +75,8 @@ export const useChatWidgetController = ({
   const [selectedQuickButtonValues, setSelectedQuickButtonValues] = useState<
     string[]
   >([]);
+  const [isInteractiveMode, setIsInteractiveMode] = useState(false);
+  const hasShownInitialQuickButtonsRef = useRef(false);
 
   useEffect(() => {
     setDefaultQuickButtons((prev) =>
@@ -84,6 +86,7 @@ export const useChatWidgetController = ({
       areQuickButtonsEqual(prev, quickButtons) ? prev : quickButtons,
     );
     setSelectedQuickButtonValues([]);
+    hasShownInitialQuickButtonsRef.current = false;
   }, [quickButtons]);
 
   const isQuickButtonMultiSelect = isMultiSelectQuickButtonSet(activeQuickButtons);
@@ -112,7 +115,21 @@ export const useChatWidgetController = ({
     );
   }, [isOpen, unreadCount]);
 
-  const addMessage = (
+  useEffect(() => {
+    if (
+      !isOpen ||
+      hasShownInitialQuickButtonsRef.current ||
+      defaultQuickButtons.length === 0 ||
+      messages.length > 0
+    ) {
+      return;
+    }
+
+    setActiveQuickButtons(defaultQuickButtons);
+    hasShownInitialQuickButtonsRef.current = true;
+  }, [defaultQuickButtons, isOpen, messages.length]);
+
+  const addMessage = useCallback((
     sender: Message['sender'],
     text: string,
     attachments?: Attachment[],
@@ -120,23 +137,28 @@ export const useChatWidgetController = ({
     const nextMessage = buildMessage(sender, text, attachments);
     setMessagesState((prev) => [...prev, nextMessage]);
     return nextMessage;
-  };
+  }, []);
 
-  const api: ChatControllerApi = {
+  const setQuickButtons = useCallback((buttons: QuickButton[]) => {
+    setActiveQuickButtons(buttons);
+    setSelectedQuickButtonValues([]);
+  }, []);
+
+  const resetQuickButtons = useCallback(() => {
+    setActiveQuickButtons([]);
+    setSelectedQuickButtonValues([]);
+  }, []);
+
+  const api: ChatControllerApi = useMemo(() => ({
     addBotMessage: (text, attachments) => addMessage('bot', text, attachments),
     addUserMessage: (text, attachments) => addMessage('user', text, attachments),
     setTyping: setIsTyping,
-    setQuickButtons: (buttons) => {
-      setActiveQuickButtons(buttons);
-      setSelectedQuickButtonValues([]);
-    },
-    resetQuickButtons: () => {
-      setActiveQuickButtons(defaultQuickButtons);
-      setSelectedQuickButtonValues([]);
-    },
-  };
+    setQuickButtons,
+    resetQuickButtons,
+    setInteractiveMode: setIsInteractiveMode,
+  }), [addMessage, resetQuickButtons, setQuickButtons]);
 
-  const uploadFile = async (file: File): Promise<Attachment> => {
+  const uploadFile = useCallback(async (file: File): Promise<Attachment> => {
     const preview = file.type.startsWith('image/')
       ? URL.createObjectURL(file)
       : undefined;
@@ -219,9 +241,9 @@ export const useChatWidgetController = ({
         window.clearInterval(progressTimer);
       }
     }
-  };
+  }, [onFileUpload]);
 
-  const handleFileSelect = async (files: File[]) => {
+  const handleFileSelect = useCallback(async (files: File[]) => {
     const availableSlots = Math.max(maxFiles - pendingAttachments.length, 0);
     const filesToUpload = files.slice(0, availableSlots);
 
@@ -232,13 +254,13 @@ export const useChatWidgetController = ({
         console.error('Failed to upload file:', error);
       }
     }
-  };
+  }, [maxFiles, pendingAttachments.length, uploadFile]);
 
-  const removePendingAttachment = (id: string) => {
+  const removePendingAttachment = useCallback((id: string) => {
     setPendingAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
-  };
+  }, []);
 
-  const retryUpload = async (id: string) => {
+  const retryUpload = useCallback(async (id: string) => {
     const failedAttachment = pendingAttachments.find((attachment) => attachment.id === id);
     if (!failedAttachment?.file) {
       return;
@@ -246,9 +268,9 @@ export const useChatWidgetController = ({
 
     setPendingAttachments((prev) => prev.filter((attachment) => attachment.id !== id));
     await handleFileSelect([failedAttachment.file]);
-  };
+  }, [handleFileSelect, pendingAttachments]);
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!inputMessage.trim() && pendingAttachments.length === 0) {
       return;
     }
@@ -264,6 +286,7 @@ export const useChatWidgetController = ({
     api.addUserMessage(messageText, attachments);
     setInputMessage('');
     setPendingAttachments([]);
+    setIsInteractiveMode(false);
 
     if (!onSendMessage) {
       return;
@@ -287,9 +310,9 @@ export const useChatWidgetController = ({
     } catch {
       api.addBotMessage('Sorry, I encountered an error. Please try again.');
     }
-  };
+  }, [api, inputMessage, onSendMessage, pendingAttachments]);
 
-  const triggerQuickButton = async (values: string[]) => {
+  const triggerQuickButton = useCallback(async (values: string[]) => {
     const selectedButtons = activeQuickButtons.filter((button) =>
       values.includes(button.value),
     );
@@ -307,10 +330,11 @@ export const useChatWidgetController = ({
       );
     }
 
-    api.resetQuickButtons();
-  };
+    resetQuickButtons();
+    setIsInteractiveMode(false);
+  }, [activeQuickButtons, api, onQuickButtonClick, resetQuickButtons]);
 
-  const sendQuickButton = async (value: string) => {
+  const sendQuickButton = useCallback(async (value: string) => {
     if (isQuickButtonMultiSelect) {
       setSelectedQuickButtonValues((prev) =>
         prev.includes(value)
@@ -321,32 +345,32 @@ export const useChatWidgetController = ({
     }
 
     await triggerQuickButton([value]);
-  };
+  }, [isQuickButtonMultiSelect, triggerQuickButton]);
 
-  const toggleQuickButtonSelection = (value: string) => {
+  const toggleQuickButtonSelection = useCallback((value: string) => {
     setSelectedQuickButtonValues((prev) =>
       prev.includes(value)
         ? prev.filter((item) => item !== value)
         : [...prev, value],
     );
-  };
+  }, []);
 
-  const submitQuickButtonSelection = async () => {
+  const submitQuickButtonSelection = useCallback(async () => {
     if (selectedQuickButtonValues.length === 0) {
       return;
     }
 
     await triggerQuickButton(selectedQuickButtonValues);
-  };
+  }, [selectedQuickButtonValues, triggerQuickButton]);
 
-  const clearQuickButtonSelection = () => {
+  const clearQuickButtonSelection = useCallback(() => {
     setSelectedQuickButtonValues([]);
-  };
+  }, []);
 
-  const setOpenState = (nextIsOpen: boolean) => {
+  const setOpenState = useCallback((nextIsOpen: boolean) => {
     setIsOpen(nextIsOpen);
     void onOpenChange?.(nextIsOpen, api);
-  };
+  }, [api, onOpenChange]);
 
   return {
     ...api,
@@ -359,6 +383,7 @@ export const useChatWidgetController = ({
     quickButtons: activeQuickButtons,
     selectedQuickButtonValues,
     isQuickButtonMultiSelect,
+    isInteractiveMode,
     openChat: () => setOpenState(true),
     closeChat: () => setOpenState(false),
     toggleChat: () => setOpenState(!isOpen),
