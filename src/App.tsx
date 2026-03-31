@@ -132,7 +132,7 @@ function App() {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">
-            Chat Widget with File Upload
+            Murphy AI Chat Widget (Demo)
           </h1>
           <p className="text-lg text-gray-600 mb-2">
             Try sending files through the chat widget!

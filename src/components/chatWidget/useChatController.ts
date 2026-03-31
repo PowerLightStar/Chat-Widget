@@ -271,6 +271,10 @@ export const useChatWidgetController = ({
   }, [handleFileSelect, pendingAttachments]);
 
   const sendMessage = useCallback(async () => {
+    if (isTyping) {
+      return;
+    }
+
     if (!inputMessage.trim() && pendingAttachments.length === 0) {
       return;
     }
@@ -310,9 +314,13 @@ export const useChatWidgetController = ({
     } catch {
       api.addBotMessage('Sorry, I encountered an error. Please try again.');
     }
-  }, [api, inputMessage, onSendMessage, pendingAttachments]);
+  }, [api, inputMessage, isTyping, onSendMessage, pendingAttachments]);
 
   const triggerQuickButton = useCallback(async (values: string[]) => {
+    if (isTyping) {
+      return;
+    }
+
     const selectedButtons = activeQuickButtons.filter((button) =>
       values.includes(button.value),
     );
@@ -332,9 +340,13 @@ export const useChatWidgetController = ({
 
     resetQuickButtons();
     setIsInteractiveMode(false);
-  }, [activeQuickButtons, api, onQuickButtonClick, resetQuickButtons]);
+  }, [activeQuickButtons, api, isTyping, onQuickButtonClick, resetQuickButtons]);
 
   const sendQuickButton = useCallback(async (value: string) => {
+    if (isTyping) {
+      return;
+    }
+
     if (isQuickButtonMultiSelect) {
       setSelectedQuickButtonValues((prev) =>
         prev.includes(value)
@@ -345,7 +357,7 @@ export const useChatWidgetController = ({
     }
 
     await triggerQuickButton([value]);
-  }, [isQuickButtonMultiSelect, triggerQuickButton]);
+  }, [isQuickButtonMultiSelect, isTyping, triggerQuickButton]);
 
   const toggleQuickButtonSelection = useCallback((value: string) => {
     setSelectedQuickButtonValues((prev) =>
@@ -356,12 +368,16 @@ export const useChatWidgetController = ({
   }, []);
 
   const submitQuickButtonSelection = useCallback(async () => {
+    if (isTyping) {
+      return;
+    }
+
     if (selectedQuickButtonValues.length === 0) {
       return;
     }
 
     await triggerQuickButton(selectedQuickButtonValues);
-  }, [selectedQuickButtonValues, triggerQuickButton]);
+  }, [isTyping, selectedQuickButtonValues, triggerQuickButton]);
 
   const clearQuickButtonSelection = useCallback(() => {
     setSelectedQuickButtonValues([]);

@@ -64,6 +64,10 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const handleKeyDown = async (
     event: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => {
+    if (chat.isTyping) {
+      return;
+    }
+
     if (event.key !== 'Enter' || event.shiftKey) {
       return;
     }
@@ -109,6 +113,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             </div>
             <button
               onClick={chat.toggleChat}
+              disabled={chat.isTyping}
               className="bg-transparent border-none text-white text-xl cursor-pointer hover:opacity-80 px-1"
             >
               ✕
@@ -150,6 +155,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
               buttons={chat.quickButtons}
               selectedValues={chat.selectedQuickButtonValues}
               isMultiSelect={chat.isQuickButtonMultiSelect}
+              disabled={chat.isTyping}
               onButtonClick={chat.sendQuickButton}
               onSubmitSelection={chat.submitQuickButtonSelection}
               onClearSelection={chat.clearQuickButtonSelection}
@@ -164,7 +170,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                   accept={acceptFileTypes}
                   multiple={true}
                   maxSize={maxFileSize}
-                  disabled={chat.pendingAttachments.length >= maxFiles}
+                  disabled={chat.isTyping || chat.pendingAttachments.length >= maxFiles}
                 />
               )}
               <textarea
@@ -172,6 +178,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
                 value={chat.inputMessage}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
+                disabled={chat.isTyping}
                 placeholder={placeholder}
                 rows={1}
                 className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400 resize-none max-h-24 overflow-y-auto"
@@ -180,6 +187,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
               <button
                 onClick={chat.sendMessage}
                 disabled={
+                  chat.isTyping ||
                   !chat.inputMessage.trim() && chat.pendingAttachments.length === 0
                 }
                 className="p-2 rounded-full transition-opacity hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
@@ -195,6 +203,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
       <button
         onClick={chat.toggleChat}
+        disabled={chat.isTyping}
         className="w-14 h-14 rounded-full shadow-lg hover:scale-105 transition-transform flex justify-center items-center shrink-0"
         style={{ backgroundColor: primaryColor }}
         aria-label={chat.isOpen ? 'Close chat' : 'Open chat'}

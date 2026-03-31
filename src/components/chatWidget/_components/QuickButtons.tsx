@@ -5,6 +5,7 @@ interface QuickButtonsProps {
   buttons: QuickButton[];
   selectedValues: string[];
   isMultiSelect: boolean;
+  disabled?: boolean;
   onButtonClick: (value: string) => void;
   onSubmitSelection: () => void;
   onClearSelection: () => void;
@@ -14,6 +15,7 @@ const QuickButtons: React.FC<QuickButtonsProps> = ({
   buttons,
   selectedValues,
   isMultiSelect,
+  disabled = false,
   onButtonClick,
   onSubmitSelection,
   onClearSelection,
@@ -28,10 +30,15 @@ const QuickButtons: React.FC<QuickButtonsProps> = ({
             <button
               key={index}
               onClick={() => onButtonClick(button.value)}
-              className={`px-3 py-1.5 border drop-shadow-2xl rounded-full text-xs transition-all hover:-translate-y-0.5 ${
+              disabled={disabled}
+              className={`px-3 py-1.5 border drop-shadow-2xl rounded-full text-xs transition-all ${
                 isSelected
                   ? 'bg-[#786550] border-[#41372c] text-white'
-                  : 'bg-gray-100 border-gray-300 hover:bg-[#786550] hover:border-[#41372c] hover:text-white'
+                  : 'bg-gray-100 border-gray-300'
+              } ${
+                disabled
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:-translate-y-0.5 hover:bg-[#786550] hover:border-[#41372c] hover:text-white'
               }`}
             >
               {button.label}
@@ -51,7 +58,7 @@ const QuickButtons: React.FC<QuickButtonsProps> = ({
             <button
               type="button"
               onClick={onClearSelection}
-              disabled={selectedValues.length === 0}
+              disabled={disabled || selectedValues.length === 0}
               className="px-3 py-1 text-xs rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Clear
@@ -59,7 +66,7 @@ const QuickButtons: React.FC<QuickButtonsProps> = ({
             <button
               type="button"
               onClick={onSubmitSelection}
-              disabled={selectedValues.length === 0}
+              disabled={disabled || selectedValues.length === 0}
               className="px-3 py-1 text-xs rounded-full border border-[#41372c] bg-[#786550] text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Send Selected
