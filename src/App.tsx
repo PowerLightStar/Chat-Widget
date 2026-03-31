@@ -16,6 +16,12 @@ const DEFAULT_QUICK_BUTTONS = [
   },
 ];
 
+const CHAT_WS_URL =
+  import.meta.env.VITE_CHAT_WS_URL ?? 'ws://localhost:8000/ws/chat';
+const CHAT_SESSION_API_URL =
+  import.meta.env.VITE_CHAT_SESSION_API_URL ??
+  'http://localhost:8000/api/v1/chat/session';
+
 function App() {
   const handleFallbackMessage = async (
     message: string,
@@ -116,8 +122,8 @@ function App() {
 
   const transport = useWebSocketChatTransport({
     controller,
-    wsUrl: 'ws://localhost:8000/ws/chat',
-    sessionApiUrl: 'http://localhost:8000/api/v1/chat/session',
+    wsUrl: CHAT_WS_URL,
+    sessionApiUrl: CHAT_SESSION_API_URL,
   });
   transportRef.current = transport;
 
