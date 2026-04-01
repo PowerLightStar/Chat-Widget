@@ -1,17 +1,30 @@
 /**
  * Single-tag install (host this file on the same origin as the widget app, or pass ?base=):
  *
- *   <script src="https://YOUR-HOST/chat-widget.js" async></script>
+ *   <script src="https://YOUR-HOST/chat-widget.js" crossorigin="anonymous" async></script>
  *
  * If the script is on a different domain than the app, point the iframe at your app:
  *
- *   <script src="https://CDN/chat-widget.js?base=https%3A%2F%2FYOUR-HOST" async></script>
+ *   <script src="https://CDN/chat-widget.js?base=https%3A%2F%2FYOUR-HOST" crossorigin="anonymous" async></script>
  *
- * Optional query params on this script URL: base, path, w, h, style, allow
+ * Optional query params on this script URL:
+ * base, path, w, h, style, allow, pattern, x, y, radius, shadow, ws, sessionApi
  * Optional data-* on the script tag still work (data-embed-url, data-embed-path, etc.).
  */
 (function () {
   var SCRIPT_NAME = 'chat-widget.js'
+  var DEFAULT_STYLE =
+    'position:fixed;right:0;bottom:0;border:0;background:transparent;z-index:2147483647;max-height:90vh'
+
+  var PATTERN_STYLES = {
+    default: DEFAULT_STYLE,
+    right: 'position:fixed;right:24px;bottom:24px;border:0;background:transparent;z-index:2147483647;max-height:90vh',
+    left: 'position:fixed;left:24px;bottom:24px;border:0;background:transparent;z-index:2147483647;max-height:90vh',
+    center:
+      'position:fixed;left:50%;transform:translateX(-50%);bottom:24px;border:0;background:transparent;z-index:2147483647;max-height:90vh',
+    inline:
+      'position:relative;display:block;border:0;background:transparent;z-index:1;max-width:100%;max-height:none',
+  }
 
   function findLoaderScript() {
     var scripts = document.getElementsByTagName('script')
@@ -51,18 +64,43 @@
         '/embed/'
       if (!path.startsWith('/')) path = '/' + path
       if (!path.endsWith('/')) path += '/'
-      iframe.src = origin + path
+      var iframeUrl = new URL(origin + path)
+      var ws = params.get('ws') || s.getAttribute('data-ws-url')
+      var sessionApi =
+        params.get('sessionApi') || s.getAttribute('data-session-api-url')
+      if (ws) iframeUrl.searchParams.set('ws', ws)
+      if (sessionApi) iframeUrl.searchParams.set('sessionApi', sessionApi)
+      iframe.src = iframeUrl.toString()
     }
 
     iframe.title = s.getAttribute('data-title') || 'Chat'
     iframe.width = params.get('w') || s.getAttribute('data-width') || '420'
     iframe.height = params.get('h') || s.getAttribute('data-height') || '640'
-    iframe.setAttribute(
-      'style',
-      params.get('style') ||
-        s.getAttribute('data-style') ||
-        'position:fixed;right:0;bottom:0;border:0;background:transparent;z-index:2147483647;max-height:90vh',
-    )
+    var pattern = (params.get('pattern') || s.getAttribute('data-pattern') || 'default').toLowerCase()
+    var x = params.get('x') || s.getAttribute('data-offset-x')
+    var y = params.get('y') || s.getAttribute('data-offset-y')
+    var radius = params.get('radius') || s.getAttribute('data-radius')
+    var shadow = params.get('shadow') || s.getAttribute('data-shadow')
+    var customStyle = params.get('style') || s.getAttribute('data-style')
+
+    if (customStyle) {
+      iframe.setAttribute('style', customStyle)
+    } else {
+      var style = PATTERN_STYLES[pattern] || PATTERN_STYLES.default
+      if (x) {
+        if (pattern === 'left') {
+          style += ';left:' + x
+        } else if (pattern === 'center') {
+          style += ';margin-left:' + x
+        } else {
+          style += ';right:' + x
+        }
+      }
+      if (y) style += ';bottom:' + y
+      if (radius) style += ';border-radius:' + radius + ';overflow:hidden'
+      if (shadow) style += ';box-shadow:' + shadow
+      iframe.setAttribute('style', style)
+    }
     var allow = params.get('allow') || s.getAttribute('data-allow')
     if (allow) iframe.setAttribute('allow', allow)
 

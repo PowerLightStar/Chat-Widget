@@ -2,8 +2,8 @@ import ChatWidgetWithTransport from './ChatWidgetWithTransport';
 
 function App() {
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-12">
+    <div className="min-h-screen bg-transparent">
+      {/* <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">
             Murphy AI Chat Widget (Demo)
@@ -42,7 +42,7 @@ function App() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       <ChatWidgetWithTransport />
     </div>
