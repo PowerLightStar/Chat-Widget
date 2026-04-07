@@ -8,7 +8,7 @@ import QuickButtons from './_components/QuickButtons';
 import { ChatWidgetContext } from './useContext';
 
 import { IoMdSend } from 'react-icons/io';
-import { MdOutlineClose } from 'react-icons/md';
+import { FaChevronDown } from "react-icons/fa";
 import { IoChatbubbleEllipsesOutline } from 'react-icons/io5';
 import { ImUser } from 'react-icons/im';
 import { ThreeDot } from 'react-loading-indicators';
@@ -209,7 +209,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
         aria-label={chat.isOpen ? 'Close chat' : 'Open chat'}
       >
         <span className="text-2xl text-white">
-          {chat.isOpen ? <MdOutlineClose /> : <IoChatbubbleEllipsesOutline />}
+          {chat.isOpen ? <FaChevronDown /> : <IoChatbubbleEllipsesOutline />}
         </span>
         {!chat.isOpen && chat.unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full px-1.5 py-0.5 text-xs font-bold min-w-5">

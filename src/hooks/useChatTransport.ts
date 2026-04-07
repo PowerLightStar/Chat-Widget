@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type {
   Attachment,
+  ChatWidgetWsMetadata,
   ChatWidgetWsInboundMessage,
   ChatWidgetWsInteractiveRequestMessage,
   ChatWidgetController,
@@ -68,6 +69,45 @@ const getHistoryText = (entry: WsHistoryMessage): string => {
 
 const isUserHistoryMessage = (entry: WsHistoryMessage): boolean => {
   return entry.sender === 'user' || entry.role === 'user' || entry.type === 'user_message';
+};
+
+const getProductCardAttachments = (metadata?: ChatWidgetWsMetadata): Attachment[] => {
+  const cards = metadata?.product_cards;
+  if (!Array.isArray(cards)) {
+    return [];
+  }
+
+  return cards
+    .filter((card) => typeof card?.image_url === 'string' && card.image_url.trim())
+    .map((card, index) => {
+      const imageUrl = card.image_url!.trim();
+      const pageUrl =
+        typeof card.page_url === 'string' && card.page_url.trim()
+          ? card.page_url.trim()
+          : imageUrl;
+      const displayName =
+        typeof card.product_name === 'string' && card.product_name.trim()
+          ? card.product_name.trim()
+          : `Product card ${index + 1}`;
+      return {
+        id: `${Date.now()}-product-card-${index}`,
+        name: displayName,
+        type: 'image/product-card',
+        size: 0,
+        url: pageUrl,
+        preview: imageUrl,
+        status: 'uploaded' as const,
+      };
+    });
+};
+
+const mergeAttachments = (
+  base?: Attachment[],
+  metadata?: ChatWidgetWsMetadata,
+): Attachment[] | undefined => {
+  const productCards = getProductCardAttachments(metadata);
+  const merged = [...(base ?? []), ...productCards];
+  return merged.length > 0 ? merged : undefined;
 };
 
 const buildWsEndpoint = (wsUrl: string, sessionId: string | null) => {
@@ -234,9 +274,16 @@ export const useWebSocketChatTransport = ({
             }
 
             if (isUserHistoryMessage(entry)) {
-              controllerRef.current.addUserMessage(text, entry.attachments as Attachment[] | undefined);
+              controllerRef.current.addUserMessage(
+                text,
+                mergeAttachments(entry.attachments as Attachment[] | undefined, entry.metadata),
+              );
             } else {
-              controllerRef.current.addBotMessage(text, entry.attachments as Attachment[] | undefined);
+              controllerRef.current.addBotMessage(
+                text,
+                mergeAttachments(entry.attachments as Attachment[] | undefined, entry.metadata),
+                entry.metadata,
+              );
             }
           }
         }
@@ -245,12 +292,31 @@ export const useWebSocketChatTransport = ({
       if (data.type === 'agent_message') {
         clearInteractiveState();
         controllerRef.current.setTyping(false);
-        if (data.content) {
-          controllerRef.current.addBotMessage(data.content, data.attachments);
+        const attachments = mergeAttachments(data.attachments, data.metadata);
+        if (data.content || attachments) {
+          controllerRef.current.addBotMessage(
+            data.content ?? '',
+            attachments,
+            data.metadata,
+          );
         }
       }
 
       if (data.type === 'interactive_request' && data.options?.length) {
+        const requestText =
+          typeof data.request === 'string' && data.request.trim()
+            ? data.request.trim()
+            : typeof data.question === 'string' && data.question.trim()
+              ? data.question.trim()
+              : '';
+        const requestAttachments = mergeAttachments(undefined, data.metadata);
+        if (requestText || requestAttachments) {
+          controllerRef.current.addBotMessage(
+            requestText,
+            requestAttachments,
+            data.metadata,
+          );
+        }
         controllerRef.current.setInteractiveMode(true);
         pendingInteractiveRequestIdRef.current =
           typeof data.id === 'string'

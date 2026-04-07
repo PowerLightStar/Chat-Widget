@@ -8,12 +8,14 @@ import type {
   Message,
   QuickButton,
   UseChatWidgetControllerOptions,
+  ChatWidgetWsMetadata,
 } from './types/types';
 
 const buildMessage = (
   sender: Message['sender'],
   text: string,
   attachments?: Attachment[],
+  metadata?: ChatWidgetWsMetadata,
 ): Message => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
   text,
@@ -21,6 +23,7 @@ const buildMessage = (
   timestamp: new Date(),
   status: 'sent',
   attachments,
+  ...(sender === 'bot' && metadata ? { metadata } : {}),
 });
 
 const isChatSendResult = (
@@ -133,8 +136,14 @@ export const useChatWidgetController = ({
     sender: Message['sender'],
     text: string,
     attachments?: Attachment[],
+    metadata?: ChatWidgetWsMetadata,
   ): Message => {
-    const nextMessage = buildMessage(sender, text, attachments);
+    const nextMessage = buildMessage(
+      sender,
+      text,
+      attachments,
+      sender === 'bot' ? metadata : undefined,
+    );
     setMessagesState((prev) => [...prev, nextMessage]);
     return nextMessage;
   }, []);
@@ -150,7 +159,8 @@ export const useChatWidgetController = ({
   }, []);
 
   const api: ChatControllerApi = useMemo(() => ({
-    addBotMessage: (text, attachments) => addMessage('bot', text, attachments),
+    addBotMessage: (text, attachments, metadata) =>
+      addMessage('bot', text, attachments, metadata),
     addUserMessage: (text, attachments) => addMessage('user', text, attachments),
     setTyping: setIsTyping,
     setQuickButtons,

@@ -10,6 +10,7 @@ export interface Message {
   timestamp: Date;
   status?: 'sent' | 'read';
   attachments?: Attachment[];
+  metadata?: ChatWidgetWsMetadata;
 }
 
 export interface Attachment {
@@ -42,7 +43,11 @@ export interface ChatSendResult {
 }
 
 export interface ChatControllerApi {
-  addBotMessage: (text: string, attachments?: Attachment[]) => Message;
+  addBotMessage: (
+    text: string,
+    attachments?: Attachment[],
+    metadata?: ChatWidgetWsMetadata,
+  ) => Message;
   addUserMessage: (text: string, attachments?: Attachment[]) => Message;
   setTyping: (value: boolean) => void;
   setQuickButtons: (buttons: QuickButton[]) => void;
@@ -137,7 +142,19 @@ export interface WsHistoryMessage {
   text?: string;
   timestamp?: string;
   attachments?: Attachment[];
-  metadata?: Record<string, unknown>;
+  metadata?: ChatWidgetWsMetadata;
+}
+
+export interface ChatWidgetProductCard {
+  page_url?: string;
+  image_url?: string;
+  /** Display name for the product preview (optional). */
+  product_name?: string;
+}
+
+export interface ChatWidgetWsMetadata {
+  product_cards?: ChatWidgetProductCard[];
+  [key: string]: unknown;
 }
 
 export interface ChatWidgetWsSessionInitMessage {
@@ -159,7 +176,7 @@ export interface ChatWidgetWsAgentMessage {
   content?: string;
   timestamp?: string;
   attachments?: Attachment[];
-  metadata?: Record<string, unknown>;
+  metadata?: ChatWidgetWsMetadata;
 }
 
 export interface ChatWidgetWsInteractiveRequestMessage {
@@ -167,6 +184,7 @@ export interface ChatWidgetWsInteractiveRequestMessage {
   interactive_type?: 'single_select' | 'multi_select';
   id?: string;
   request_id?: string;
+  request?: string;
   question?: string;
   options?: Array<
     string | {
@@ -180,6 +198,7 @@ export interface ChatWidgetWsInteractiveRequestMessage {
   >;
   timeout?: number;
   timestamp?: string;
+  metadata?: ChatWidgetWsMetadata;
   [key: string]: unknown;
 }
 
@@ -187,6 +206,7 @@ export interface ChatWidgetWsErrorMessage {
   type: 'error';
   error?: string;
   timestamp?: string;
+  details?: string;
 }
 
 export type ChatWidgetWsInboundMessage =

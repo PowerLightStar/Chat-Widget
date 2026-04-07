@@ -1,7 +1,104 @@
 import React from 'react';
-import type { Message, ChatWidgetAvatar } from '../types/types';
+import type {
+  ChatWidgetProductCard,
+  ChatWidgetWsMetadata,
+  Message,
+  ChatWidgetAvatar,
+} from '../types/types';
 import FileAttachment from './FileAttachment';
 import type { IconType } from 'react-icons';
+
+type ProductUrlReplacement = { url: string; label: string; href: string };
+
+const collectProductUrlReplacements = (
+  cards: ChatWidgetProductCard[] | undefined,
+): ProductUrlReplacement[] => {
+  if (!Array.isArray(cards)) {
+    return [];
+  }
+
+  const out: ProductUrlReplacement[] = [];
+  for (const card of cards) {
+    const label =
+      typeof card.product_name === 'string' ? card.product_name.trim() : '';
+    if (!label) {
+      continue;
+    }
+    const page = typeof card.page_url === 'string' ? card.page_url.trim() : '';
+    const img = typeof card.image_url === 'string' ? card.image_url.trim() : '';
+    const href = page || img;
+    if (!href) {
+      continue;
+    }
+    if (page) {
+      out.push({ url: page, label, href: page });
+    }
+    if (img && img !== page) {
+      out.push({ url: img, label, href: page || img });
+    }
+  }
+
+  out.sort((a, b) => b.url.length - a.url.length);
+  return out;
+};
+
+const renderBotTextWithProductHighlights = (
+  text: string,
+  metadata: ChatWidgetWsMetadata | undefined,
+): React.ReactNode => {
+  const replacements = collectProductUrlReplacements(metadata?.product_cards);
+  if (replacements.length === 0) {
+    return text;
+  }
+
+  const nodes: React.ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+
+  while (i < text.length) {
+    let bestStart = -1;
+    let best: ProductUrlReplacement | null = null;
+
+    for (const r of replacements) {
+      const pos = text.indexOf(r.url, i);
+      if (pos < 0) {
+        continue;
+      }
+      if (
+        bestStart < 0 ||
+        pos < bestStart ||
+        (pos === bestStart && r.url.length > (best?.url.length ?? 0))
+      ) {
+        bestStart = pos;
+        best = r;
+      }
+    }
+
+    if (bestStart < 0 || !best) {
+      nodes.push(text.slice(i));
+      break;
+    }
+
+    if (bestStart > i) {
+      nodes.push(text.slice(i, bestStart));
+    }
+
+    nodes.push(
+      <a
+        key={`product-highlight-${key++}`}
+        href={best.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline font-semibold text-[#41372c] bg-amber-100 px-1.5 py-0.5 rounded-md shadow-sm ring-1 ring-amber-200/90 hover:ring-amber-300"
+      >
+        {best.label}
+      </a>,
+    );
+    i = bestStart + best.url.length;
+  }
+
+  return nodes.length === 1 && typeof nodes[0] === 'string' ? nodes[0] : <>{nodes}</>;
+};
 
 export const renderChatAvatar = (avatar: ChatWidgetAvatar): React.ReactNode => {
   if (typeof avatar === 'string') {
@@ -42,7 +139,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               ? 'bg-[#786550] text-white'
               : 'bg-gray-100 text-gray-800'
           }`}>
-            {message.text}
+            {message.sender === 'bot'
+              ? renderBotTextWithProductHighlights(message.text, message.metadata)
+              : message.text}
           </div>
         )}
         
@@ -51,18 +150,29 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             {message.attachments.map((attachment) => (
               <div key={attachment.id}>
                 {attachment.type.startsWith('image/') && attachment.url ? (
-                  <a
-                    href={attachment.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block"
-                  >
-                    <img
-                      src={attachment.preview || attachment.url}
-                      alt={attachment.name}
-                      className="max-w-50 max-h-50 rounded-lg cursor-pointer transition-transform hover:scale-105"
-                    />
-                  </a>
+                  <div className="inline-block">
+                    <a
+                      href={attachment.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block"
+                    >
+                      <img
+                        src={attachment.preview || attachment.url}
+                        alt={attachment.name}
+                        className="max-w-50 max-h-50 rounded-lg cursor-pointer transition-transform hover:scale-105"
+                      />
+                    </a>
+                    {attachment.type === 'image/product-card' && attachment.name ? (
+                      <div
+                        className={`mt-1 text-xs ${
+                          message.sender === 'user' ? 'text-white/90' : 'text-gray-600'
+                        }`}
+                      >
+                        {attachment.name}
+                      </div>
+                    ) : null}
+                  </div>
                 ) : (
                   <a
                     href={attachment.url}

@@ -1,8 +1,9 @@
 import ChatWidgetWithTransport from './ChatWidgetWithTransport';
+import WebSocketSchemaTester from './components/WebSocketSchemaTester';
 
 function App() {
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-gray-50">
       {/* <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto text-center">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">
@@ -44,6 +45,7 @@ function App() {
         </div>
       </div> */}
 
+      <WebSocketSchemaTester />
       <ChatWidgetWithTransport />
     </div>
   );
