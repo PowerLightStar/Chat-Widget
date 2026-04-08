@@ -92,7 +92,8 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   const positionClasses = {
-    'bottom-right': 'bottom-5 right-8',
+    /* Tight corner so the launcher sits over common host FABs (e.g. back-to-top). */
+    'bottom-right': 'bottom-2 right-2',
     'bottom-left': 'bottom-5 left-5',
   };
 
@@ -219,15 +220,24 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       <button
         onClick={chat.toggleChat}
         disabled={chat.isTyping}
-        className="w-14 h-14 rounded-full shadow-lg hover:scale-105 transition-transform flex justify-center items-center shrink-0"
-        style={{ backgroundColor: primaryColor }}
+        className={`relative z-1000 flex h-14 w-14 shrink-0 items-center justify-center overflow-visible rounded-full ${
+          chat.isOpen
+            ? 'shadow-lg transition-transform hover:scale-105'
+            : 'murphy-chat-trigger--idle'
+        }`}
+        style={{
+          backgroundColor: primaryColor,
+          ...(!chat.isOpen
+            ? ({ ['--murphy-chat-primary' as string]: primaryColor } as React.CSSProperties)
+            : {}),
+        }}
         aria-label={chat.isOpen ? 'Close chat' : 'Open chat'}
       >
-        <span className="text-2xl text-white">
+        <span className="relative z-10 text-2xl text-white">
           {chat.isOpen ? <FaChevronDown /> : <IoChatbubbleEllipsesOutline />}
         </span>
         {!chat.isOpen && chat.unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full px-1.5 py-0.5 text-xs font-bold min-w-5">
+          <span className="absolute -top-1 -right-1 z-20 bg-red-500 text-white rounded-full px-1.5 py-0.5 text-xs font-bold min-w-5">
             {chat.unreadCount}
           </span>
         )}

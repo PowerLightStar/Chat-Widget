@@ -22,3 +22,88 @@ html.murphy-chat-embed #root > * {
   pointer-events: none;
   background: transparent !important;
 }
+
+/*
+ * Closed launcher ripple: brand-tinted expanding halo (--murphy-chat-primary on the button).
+ * Static shadow when prefers-reduced-motion: reduce.
+ */
+/* Short dwell at rest so each new cycle reads as a distinct repeat. */
+@keyframes murphy-chat-trigger-ripple-wave {
+  0%,
+  12% {
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.26),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 0 0 1px rgba(255, 255, 255, 0.16),
+      0 0 0 0 rgba(65, 55, 44, 0);
+  }
+  42% {
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 0 0 1px rgba(255, 255, 255, 0.1),
+      0 0 0 24px rgba(65, 55, 44, 0.14);
+  }
+  62%,
+  100% {
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.26),
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 0 0 1px rgba(255, 255, 255, 0.16),
+      0 0 0 0 rgba(65, 55, 44, 0);
+  }
+}
+
+@supports (color: color-mix(in srgb, black 50%, white)) {
+  @keyframes murphy-chat-trigger-ripple-wave {
+    0%,
+    12% {
+      box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        0 0 0 1px rgba(255, 255, 255, 0.16),
+        0 0 0 0 color-mix(in srgb, var(--murphy-chat-primary, #41372c) 0%, transparent);
+    }
+    42% {
+      box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 0 0 24px color-mix(in srgb, var(--murphy-chat-primary, #41372c) 26%, transparent);
+    }
+    62%,
+    100% {
+      box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.26),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        0 0 0 1px rgba(255, 255, 255, 0.16),
+        0 0 0 0 color-mix(in srgb, var(--murphy-chat-primary, #41372c) 0%, transparent);
+    }
+  }
+}
+
+.murphy-chat-trigger--idle {
+  will-change: box-shadow;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Longhand + !important: preflight can reset `animation` on buttons; must loop forever while closed. */
+  .murphy-chat-trigger--idle {
+    animation-name: murphy-chat-trigger-ripple-wave !important;
+    animation-duration: 2s !important;
+    animation-timing-function: ease-in-out !important;
+    animation-iteration-count: infinite !important;
+    animation-fill-mode: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .murphy-chat-trigger--idle {
+    animation: none;
+    will-change: auto;
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.26),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 0 0 1px rgba(255, 255, 255, 0.14);
+  }
+}
