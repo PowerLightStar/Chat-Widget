@@ -101,6 +101,65 @@
       if (shadow) style += ';box-shadow:' + shadow
       iframe.setAttribute('style', style)
     }
+
+    function ensurePx(value, fallback) {
+      if (!value) return fallback
+      return /^\d+$/.test(value) ? value + 'px' : value
+    }
+
+    function applyAnchoring() {
+      if (pattern === 'inline') return
+      iframe.style.position = 'fixed'
+      iframe.style.inset = 'auto'
+      iframe.style.top = 'auto'
+      iframe.style.bottom = y || '24px'
+      if (pattern === 'left') {
+        iframe.style.left = x || '24px'
+        iframe.style.right = 'auto'
+        iframe.style.transform = 'none'
+      } else if (pattern === 'center') {
+        iframe.style.left = '50%'
+        iframe.style.right = 'auto'
+        iframe.style.transform = 'translateX(-50%)'
+      } else {
+        iframe.style.right = x || '24px'
+        iframe.style.left = 'auto'
+        iframe.style.transform = 'none'
+      }
+    }
+
+    var expandedWidth = ensurePx(
+      params.get('w') || s.getAttribute('data-width') || iframe.style.width || iframe.width,
+      '420px',
+    )
+    var expandedHeight = ensurePx(
+      params.get('h') || s.getAttribute('data-height') || iframe.style.height || iframe.height,
+      '640px',
+    )
+    var collapsedSize = ensurePx(
+      params.get('bubble') || s.getAttribute('data-bubble-size'),
+      '72px',
+    )
+
+    function setWidgetFrameOpen(isOpen) {
+      if (pattern === 'inline') return
+      applyAnchoring()
+      iframe.style.width = isOpen ? expandedWidth : collapsedSize
+      iframe.style.height = isOpen ? expandedHeight : collapsedSize
+      iframe.style.maxHeight = isOpen ? '90vh' : collapsedSize
+      iframe.style.transition = 'width 180ms ease,height 180ms ease'
+      iframe.style.overflow = 'hidden'
+    }
+
+    setWidgetFrameOpen(false)
+
+    window.addEventListener('message', function (event) {
+      if (event.source !== iframe.contentWindow) return
+      var data = event.data || {}
+      if (data.source !== 'murphy-chat-widget' || data.type !== 'widget_state') return
+      setWidgetFrameOpen(Boolean(data.isOpen))
+    })
+
     var allow = params.get('allow') || s.getAttribute('data-allow')
     if (allow) iframe.setAttribute('allow', allow)
 

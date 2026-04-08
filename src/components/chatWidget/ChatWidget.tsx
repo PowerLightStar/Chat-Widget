@@ -57,6 +57,21 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     textarea.style.height = `${Math.min(textarea.scrollHeight, 96)}px`;
   }, [chat.inputMessage]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent === window) {
+      return;
+    }
+
+    window.parent.postMessage(
+      {
+        source: 'murphy-chat-widget',
+        type: 'widget_state',
+        isOpen: chat.isOpen,
+      },
+      '*',
+    );
+  }, [chat.isOpen]);
+
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     chat.setInputMessage(event.target.value);
   };
