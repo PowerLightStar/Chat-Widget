@@ -8,8 +8,12 @@
  *   <script src="https://CDN/chat-widget.js?base=https%3A%2F%2FYOUR-HOST" crossorigin="anonymous" async></script>
  *
  * Optional query params on this script URL:
- * base, path, w, h, style, allow, pattern, x, y, radius, shadow, ws, sessionApi
+ * base, path, w, h, bubble, style, allow, pattern, x, y, radius, shadow, ws, sessionApi
  * Optional data-* on the script tag still work (data-embed-url, data-embed-path, etc.).
+ *
+ * Panel size (when chat is open): w / h or data-width / data-height — use real values
+ * (e.g. 420×640). Tiny values were mistaken for “bubble” size and clip the whole panel.
+ * Collapsed launcher size: bubble or data-bubble-size (default 112px).
  */
 (function () {
   var SCRIPT_NAME = 'chat-widget.js'
@@ -74,8 +78,6 @@
     }
 
     iframe.title = s.getAttribute('data-title') || 'Chat'
-    iframe.width = params.get('w') || s.getAttribute('data-width') || '420'
-    iframe.height = params.get('h') || s.getAttribute('data-height') || '640'
     var pattern = (params.get('pattern') || s.getAttribute('data-pattern') || 'default').toLowerCase()
     var x = params.get('x') || s.getAttribute('data-offset-x')
     var y = params.get('y') || s.getAttribute('data-offset-y')
@@ -107,6 +109,18 @@
       return /^\d+$/.test(value) ? value + 'px' : value
     }
 
+    function expandedDim(raw, fallback, minPx) {
+      if (!raw || typeof raw !== 'string') return fallback
+      var s = raw.trim().toLowerCase()
+      if (s.indexOf('vw') !== -1 || s.indexOf('vh') !== -1 || s.indexOf('%') !== -1) {
+        return fallback
+      }
+      var px = ensurePx(raw, fallback)
+      var n = parseFloat(px)
+      if (!n || n < minPx) return fallback
+      return px
+    }
+
     function applyAnchoring() {
       if (pattern === 'inline') return
       iframe.style.position = 'fixed'
@@ -128,14 +142,13 @@
       }
     }
 
-    var expandedWidth = ensurePx(
-      params.get('w') || s.getAttribute('data-width') || iframe.style.width || iframe.width,
-      '420px',
-    )
-    var expandedHeight = ensurePx(
-      params.get('h') || s.getAttribute('data-height') || iframe.style.height || iframe.height,
-      '640px',
-    )
+    var rawExpandedW = params.get('w') || s.getAttribute('data-width')
+    var rawExpandedH = params.get('h') || s.getAttribute('data-height')
+    var expandedWidth = expandedDim(rawExpandedW, '420px', 300)
+    var expandedHeight = expandedDim(rawExpandedH, '640px', 380)
+
+    iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth, 10) || 420)))
+    iframe.height = String(Math.max(1, Math.round(parseFloat(expandedHeight, 10) || 640)))
     // Must fit launcher (56px) + horizontal inset (e.g. right-8 ≈ 32px) + shadow/badge bleed.
     // Smaller values clip the trigger (looks “sliced”) under overflow:hidden.
     var collapsedSize = ensurePx(

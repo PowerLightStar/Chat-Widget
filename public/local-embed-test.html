@@ -53,13 +53,17 @@
       async
     ></script> -->
 
+    <!--
+      data-width / data-height = OPEN panel iframe size (not the launcher bubble).
+      Fullscreen data-style conflicts with bubble resize + click-through; omit it for this test.
+    -->
     <script
-      src="https://chat-widget-xi-five.vercel.app/chat-widget.js"
-      data-embed-origin="https://chat-widget-xi-five.vercel.app"
+      src="http://localhost:5173/chat-widget.js"
+      data-embed-origin="http://localhost:5173"
       data-embed-path="/"
-      data-width="100px"
-      data-height="100px"
-      data-style="position:fixed;inset:0;border:0;background:transparent;z-index:2147483647;width:100vw;height:100vh;max-height:none"
+      data-width="420px"
+      data-height="640px"
+      data-pattern="right"
       crossorigin="anonymous"
       async
     ></script>
