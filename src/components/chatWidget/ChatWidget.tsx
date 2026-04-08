@@ -98,7 +98,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
 
   return (
     <div
-      className={`fixed z-1000 ${positionClasses[position]} flex flex-col items-end gap-3`}
+      className={`murphy-chat-widget-hit-target fixed z-1000 ${positionClasses[position]} flex flex-col items-end gap-3 pointer-events-auto`}
     >
       {chat.isOpen && (
         <div

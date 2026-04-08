@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import logo from './assets/logo.svg';
 
 import ChatWidget, {
@@ -23,6 +23,17 @@ const CHAT_SESSION_API_URL =
   'http://localhost:8000/api/v1/chat/session';
 
 export default function ChatWidgetWithTransport() {
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent === window) {
+      return;
+    }
+
+    document.documentElement.classList.add('murphy-chat-embed');
+    return () => {
+      document.documentElement.classList.remove('murphy-chat-embed');
+    };
+  }, []);
+
   const handleFallbackMessage = async (
     message: string,
     attachments?: File[],

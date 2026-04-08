@@ -136,9 +136,11 @@
       params.get('h') || s.getAttribute('data-height') || iframe.style.height || iframe.height,
       '640px',
     )
+    // Must fit launcher (56px) + horizontal inset (e.g. right-8 ≈ 32px) + shadow/badge bleed.
+    // Smaller values clip the trigger (looks “sliced”) under overflow:hidden.
     var collapsedSize = ensurePx(
       params.get('bubble') || s.getAttribute('data-bubble-size'),
-      '72px',
+      '112px',
     )
 
     function setWidgetFrameOpen(isOpen) {

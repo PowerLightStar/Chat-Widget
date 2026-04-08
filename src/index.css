@@ -1,1 +1,24 @@
 @import "tailwindcss";
+
+/*
+ * When the app runs inside an embed iframe, make the document click-through so the
+ * host page stays interactive outside the actual widget. The widget root re-enables
+ * pointer events (see ChatWidget + ChatWidgetWithTransport).
+ */
+html.murphy-chat-embed {
+  background: transparent !important;
+}
+
+html.murphy-chat-embed,
+html.murphy-chat-embed body {
+  min-height: 0 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+html.murphy-chat-embed body,
+html.murphy-chat-embed #root,
+html.murphy-chat-embed #root > * {
+  pointer-events: none;
+  background: transparent !important;
+}
