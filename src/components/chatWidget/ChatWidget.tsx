@@ -23,7 +23,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   controller,
   primaryColor = '#41372c',
   position = 'bottom-right',
-  height = '80vh',
+  height = '640px',
   width = '400px',
   showTimestamp = true,
   acceptFileTypes = 'image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx',

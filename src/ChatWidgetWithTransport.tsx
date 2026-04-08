@@ -146,6 +146,7 @@ export default function ChatWidgetWithTransport() {
         primaryColor="#41372c"
         position="bottom-right"
         width="400px"
+        height="640px"
         showTimestamp={true}
         acceptFileTypes="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
         maxFileSize={10 * 1024 * 1024}
