@@ -92,7 +92,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   const positionClasses = {
-    'bottom-right': 'bottom-5 right-5',
+    'bottom-right': 'bottom-5 right-8',
     'bottom-left': 'bottom-5 left-5',
   };
 
