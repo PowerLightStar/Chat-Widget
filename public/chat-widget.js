@@ -12,7 +12,7 @@
  * Optional data-* on the script tag still work (data-embed-url, data-embed-path, etc.).
  *
  * Panel size (when chat is open): w / h or data-width / data-height — use real values
- * (e.g. 420×640). Tiny values were mistaken for “bubble” size and clip the whole panel.
+ * (e.g. 400×640). Tiny values were mistaken for “bubble” size and clip the whole panel.
  * Collapsed launcher size: bubble or data-bubble-size (default 112px).
  */
 (function () {
@@ -144,10 +144,10 @@
 
     var rawExpandedW = params.get('w') || s.getAttribute('data-width')
     var rawExpandedH = params.get('h') || s.getAttribute('data-height')
-    var expandedWidth = expandedDim(rawExpandedW, '420px', 300)
+    var expandedWidth = expandedDim(rawExpandedW, '400px', 300)
     var expandedHeight = expandedDim(rawExpandedH, '640px', 380)
 
-    iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth, 10) || 420)))
+    iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth, 10) || 400)))
     iframe.height = String(Math.max(1, Math.round(parseFloat(expandedHeight, 10) || 640)))
     // Must fit launcher (56px) + horizontal inset (e.g. right-8 ≈ 32px) + shadow/badge bleed.
     // Smaller values clip the trigger (looks “sliced”) under overflow:hidden.

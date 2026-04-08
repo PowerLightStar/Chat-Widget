@@ -145,6 +145,7 @@ export default function ChatWidgetWithTransport() {
         placeholder="Type your message or attach files..."
         primaryColor="#41372c"
         position="bottom-right"
+        width="400px"
         showTimestamp={true}
         acceptFileTypes="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
         maxFileSize={10 * 1024 * 1024}
