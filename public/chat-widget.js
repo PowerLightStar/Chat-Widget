@@ -11,12 +11,13 @@
  * base, path, w, h, bubble, style, allow, pattern, x, y, radius, shadow, ws, sessionApi
  * Optional data-* on the script tag still work (data-embed-url, data-embed-path, etc.).
  *
+ * pattern default: iframe inset flush to bottom-right (right:0; bottom:0). Use pattern
+ * right | left | center for a 24px gutter, or set data-offset-x / data-offset-y (or ?x=&y=).
+ *
  * Open iframe size (w / h or data-width / data-height) must fit the whole widget:
  * panel (default 400×640) + right/bottom inset + gap + launcher button + shadows.
  * Defaults: 460×760px. If you pass 400×640 it is auto-expanded to that outer box.
- * Collapsed: bubble or data-bubble-size (default 160px). Minimum 152px so the idle
- * launcher box-shadow ripple (~24px) is not clipped at the iframe edges (overflow is
- * visible when collapsed).
+ * Collapsed: bubble or data-bubble-size (default 192px). Minimum 176px (ripple + mask).
  */
 (function () {
   var SCRIPT_NAME = 'chat-widget.js'
@@ -129,16 +130,24 @@
       iframe.style.position = 'fixed'
       iframe.style.inset = 'auto'
       iframe.style.top = 'auto'
-      iframe.style.bottom = y || '24px'
       if (pattern === 'left') {
+        iframe.style.bottom = y || '24px'
         iframe.style.left = x || '24px'
         iframe.style.right = 'auto'
         iframe.style.transform = 'none'
       } else if (pattern === 'center') {
+        iframe.style.bottom = y || '24px'
         iframe.style.left = '50%'
         iframe.style.right = 'auto'
         iframe.style.transform = 'translateX(-50%)'
+      } else if (pattern === 'default') {
+        iframe.style.bottom = y || '0px'
+        iframe.style.right = x || '0px'
+        iframe.style.left = 'auto'
+        iframe.style.transform = 'none'
       } else {
+        /* pattern right (or unknown): 24px gutter from edges */
+        iframe.style.bottom = y || '24px'
         iframe.style.right = x || '24px'
         iframe.style.left = 'auto'
         iframe.style.transform = 'none'
@@ -159,14 +168,12 @@
       expandedHeight = DEFAULT_OPEN_H
     }
 
-    iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth, 10) || 460)))
-    iframe.height = String(Math.max(1, Math.round(parseFloat(expandedHeight, 10) || 760)))
-    // Launcher 56px + bottom/right inset (8px) + ~24px box-shadow ripple + badge bleed.
-    // Iframes smaller than this clip the idle pulse on the bottom-right.
-    var BUBBLE_MIN_PX = 152
+    iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth) || 460)))
+    iframe.height = String(Math.max(1, Math.round(parseFloat(expandedHeight) || 760)))
+    var BUBBLE_MIN_PX = 176
     var collapsedSize = ensurePx(
       params.get('bubble') || s.getAttribute('data-bubble-size'),
-      '160px',
+      '192px',
     )
     var collapsedNum = parseFloat(collapsedSize)
     if (!isNaN(collapsedNum) && collapsedNum < BUBBLE_MIN_PX) {
