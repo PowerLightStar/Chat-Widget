@@ -21,6 +21,7 @@ html.murphy-chat-embed #root,
 html.murphy-chat-embed #root > * {
   pointer-events: none;
   background: transparent !important;
+  overflow: visible !important;
 }
 
 /*

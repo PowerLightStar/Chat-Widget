@@ -144,6 +144,7 @@ export default function ChatWidgetWithTransport() {
         botAvatar={<img src={logo} alt="Bot Avatar" className="w-12 h-12 rounded-full" />}
         placeholder="Type your message or attach files..."
         primaryColor="#41372c"
+        embedded={typeof window !== 'undefined' && window.parent !== window}
         position="bottom-right"
         width="400px"
         height="640px"

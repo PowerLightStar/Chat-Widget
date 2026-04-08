@@ -31,6 +31,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   maxFiles = 5,
   allowFileUpload = false,
   isConnected = false,
+  embedded = false,
 }) => {
   const contextController = useContext(ChatWidgetContext);
   const chat = controller ?? contextController;
@@ -92,9 +93,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   };
 
   const positionClasses = {
-    /* Tight corner so the launcher sits over common host FABs (e.g. back-to-top). */
-    'bottom-right': 'bottom-2 right-2',
-    'bottom-left': 'bottom-5 left-5',
+    /*
+     * Standalone: tight corner over host FABs. Embedded: inset ≥ ~24px ripple spread
+     * so box-shadow is not clipped by the iframe viewport.
+     */
+    'bottom-right': embedded ? 'bottom-7 right-7' : 'bottom-2 right-2',
+    'bottom-left': embedded ? 'bottom-7 left-7' : 'bottom-5 left-5',
   };
 
   return (

@@ -14,7 +14,9 @@
  * Open iframe size (w / h or data-width / data-height) must fit the whole widget:
  * panel (default 400×640) + right/bottom inset + gap + launcher button + shadows.
  * Defaults: 460×760px. If you pass 400×640 it is auto-expanded to that outer box.
- * Collapsed: bubble or data-bubble-size (default 112px).
+ * Collapsed: bubble or data-bubble-size (default 160px). Minimum 152px so the idle
+ * launcher box-shadow ripple (~24px) is not clipped at the iframe edges (overflow is
+ * visible when collapsed).
  */
 (function () {
   var SCRIPT_NAME = 'chat-widget.js'
@@ -159,12 +161,17 @@
 
     iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth, 10) || 460)))
     iframe.height = String(Math.max(1, Math.round(parseFloat(expandedHeight, 10) || 760)))
-    // Must fit launcher (56px) + horizontal inset (e.g. right-8 ≈ 32px) + shadow/badge bleed.
-    // Smaller values clip the trigger (looks “sliced”) under overflow:hidden.
+    // Launcher 56px + bottom/right inset (8px) + ~24px box-shadow ripple + badge bleed.
+    // Iframes smaller than this clip the idle pulse on the bottom-right.
+    var BUBBLE_MIN_PX = 152
     var collapsedSize = ensurePx(
       params.get('bubble') || s.getAttribute('data-bubble-size'),
-      '112px',
+      '160px',
     )
+    var collapsedNum = parseFloat(collapsedSize)
+    if (!isNaN(collapsedNum) && collapsedNum < BUBBLE_MIN_PX) {
+      collapsedSize = BUBBLE_MIN_PX + 'px'
+    }
 
     function setWidgetFrameOpen(isOpen) {
       if (pattern === 'inline') return
@@ -173,7 +180,8 @@
       iframe.style.height = isOpen ? expandedHeight : collapsedSize
       iframe.style.maxHeight = isOpen ? '90vh' : collapsedSize
       iframe.style.transition = 'width 180ms ease,height 180ms ease'
-      iframe.style.overflow = 'hidden'
+      // Collapsed: visible so ripple can paint; host still only sees the iframe box (extra chrome in width/height).
+      iframe.style.overflow = isOpen ? 'hidden' : 'visible'
     }
 
     setWidgetFrameOpen(false)

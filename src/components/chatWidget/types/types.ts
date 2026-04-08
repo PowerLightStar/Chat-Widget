@@ -121,6 +121,8 @@ export interface ChatWidgetProps {
   maxFiles?: number;
   allowFileUpload?: boolean;
   isConnected?: boolean;
+  /** When true (e.g. iframe embed), launcher inset matches box-shadow ripple spread so the pulse is not clipped. */
+  embedded?: boolean;
 }
 
 export type ChatWidgetWsMessageType =
