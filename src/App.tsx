@@ -7,7 +7,7 @@ function App() {
   const isSchemaTestRoute = normalizedPath === '/test';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-transparent">
       {isSchemaTestRoute ? <WebSocketSchemaTester /> : <ChatWidgetWithTransport />}
     </div>
   );
