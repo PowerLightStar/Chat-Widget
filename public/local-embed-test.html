@@ -54,18 +54,9 @@
     ></script> -->
 
     <!--
-      data-width / data-height = OPEN panel iframe size (not the launcher bubble).
-      Fullscreen data-style conflicts with bubble resize + click-through; omit it for this test.
+      Open-state iframe: use outer box (~460×760) so panel + launcher + shadows are not clipped.
+      Do not use fullscreen data-style here; it breaks bubble resize and click-through.
     -->
-    <script
-      src="http://localhost:5173/chat-widget.js"
-      data-embed-origin="http://localhost:5173"
-      data-embed-path="/"
-      data-width="400px"
-      data-height="640px"
-      data-pattern="right"
-      crossorigin="anonymous"
-      async
-    ></script>
+
   </body>
 </html>

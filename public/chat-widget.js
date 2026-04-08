@@ -11,9 +11,10 @@
  * base, path, w, h, bubble, style, allow, pattern, x, y, radius, shadow, ws, sessionApi
  * Optional data-* on the script tag still work (data-embed-url, data-embed-path, etc.).
  *
- * Panel size (when chat is open): w / h or data-width / data-height — use real values
- * (e.g. 400×640). Tiny values were mistaken for “bubble” size and clip the whole panel.
- * Collapsed launcher size: bubble or data-bubble-size (default 112px).
+ * Open iframe size (w / h or data-width / data-height) must fit the whole widget:
+ * panel (default 400×640) + right/bottom inset + gap + launcher button + shadows.
+ * Defaults: 460×760px. If you pass 400×640 it is auto-expanded to that outer box.
+ * Collapsed: bubble or data-bubble-size (default 112px).
  */
 (function () {
   var SCRIPT_NAME = 'chat-widget.js'
@@ -144,11 +145,20 @@
 
     var rawExpandedW = params.get('w') || s.getAttribute('data-width')
     var rawExpandedH = params.get('h') || s.getAttribute('data-height')
-    var expandedWidth = expandedDim(rawExpandedW, '400px', 300)
-    var expandedHeight = expandedDim(rawExpandedH, '640px', 380)
+    var DEFAULT_OPEN_W = '460px'
+    var DEFAULT_OPEN_H = '760px'
+    var expandedWidth = expandedDim(rawExpandedW, DEFAULT_OPEN_W, 300)
+    var expandedHeight = expandedDim(rawExpandedH, DEFAULT_OPEN_H, 380)
 
-    iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth, 10) || 400)))
-    iframe.height = String(Math.max(1, Math.round(parseFloat(expandedHeight, 10) || 640)))
+    var ew = parseFloat(expandedWidth)
+    var eh = parseFloat(expandedHeight)
+    if (ew === 400 && eh === 640) {
+      expandedWidth = DEFAULT_OPEN_W
+      expandedHeight = DEFAULT_OPEN_H
+    }
+
+    iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth, 10) || 460)))
+    iframe.height = String(Math.max(1, Math.round(parseFloat(expandedHeight, 10) || 760)))
     // Must fit launcher (56px) + horizontal inset (e.g. right-8 ≈ 32px) + shadow/badge bleed.
     // Smaller values clip the trigger (looks “sliced”) under overflow:hidden.
     var collapsedSize = ensurePx(
