@@ -187,7 +187,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
             />
           )}
 
-          {!chat.isInteractiveMode && (
+          {(!chat.isInteractiveMode || chat.quickButtons.length === 0) && (
             <div className="px-4 py-2 m-2 border-t border-gray-200 flex gap-3 items-center bg-gray-50 rounded-full">
               {allowFileUpload && (
                 <FileUpload

@@ -308,6 +308,11 @@ export const useWebSocketChatTransport = ({
       }
 
       if (data.type === 'interactive_request' && data.options?.length) {
+        const quickButtons = toQuickButtons(data.options, data.interactive_type);
+        if (!quickButtons.length) {
+          clearInteractiveState();
+          return;
+        }
         const requestText =
           typeof data.content === 'string' && data.content.trim()
             ? data.content.trim()
@@ -324,6 +329,7 @@ export const useWebSocketChatTransport = ({
             data.metadata,
           );
         }
+        controllerRef.current.setQuickButtons(quickButtons);
         controllerRef.current.setInteractiveMode(true);
         pendingInteractiveRequestIdRef.current =
           typeof data.id === 'string'
@@ -331,9 +337,6 @@ export const useWebSocketChatTransport = ({
             : typeof data.request_id === 'string'
               ? data.request_id
               : null;
-        controllerRef.current.setQuickButtons(
-          toQuickButtons(data.options, data.interactive_type),
-        );
       } else if (data.type === 'interactive_request') {
         clearInteractiveState();
       }
