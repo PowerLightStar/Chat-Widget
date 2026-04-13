@@ -150,8 +150,13 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
               />
             ))}
             {chat.isTyping && (
-              <div className="flex gap-1 p-2 rounded-2xl w-fit animate-pulse-slow">
-                <ThreeDot color={[primaryColor]} size="small" text="" textColor="" />
+              <div className="p-2 rounded-2xl w-fit animate-pulse-slow">
+                <div className="flex gap-1">
+                  <ThreeDot color={[primaryColor]} size="small" text="" textColor="" />
+                </div>
+                {chat.typingStatus && (
+                  <p className="mt-1 text-xs text-gray-500">{chat.typingStatus}</p>
+                )}
               </div>
             )}
             <div ref={messagesEndRef} />

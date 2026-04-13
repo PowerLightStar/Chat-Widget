@@ -249,7 +249,11 @@ export const useWebSocketChatTransport = ({
       onWsMessage?.(data);
 
       if (data.type === 'typing_indicator') {
-        controllerRef.current.setTyping(Boolean(data.is_typing));
+        const isTyping = Boolean(data.is_typing);
+        controllerRef.current.setTyping(isTyping);
+        controllerRef.current.setTypingStatus(
+          isTyping && typeof data.status === 'string' ? data.status : undefined,
+        );
       }
 
       if (data.type === 'session_init') {
@@ -292,6 +296,7 @@ export const useWebSocketChatTransport = ({
       if (data.type === 'agent_message') {
         clearInteractiveState();
         controllerRef.current.setTyping(false);
+        controllerRef.current.setTypingStatus(undefined);
         const attachments = mergeAttachments(data.attachments, data.metadata);
         if (data.content || attachments) {
           controllerRef.current.addBotMessage(
@@ -304,11 +309,13 @@ export const useWebSocketChatTransport = ({
 
       if (data.type === 'interactive_request' && data.options?.length) {
         const requestText =
-          typeof data.request === 'string' && data.request.trim()
-            ? data.request.trim()
-            : typeof data.question === 'string' && data.question.trim()
-              ? data.question.trim()
-              : '';
+          typeof data.content === 'string' && data.content.trim()
+            ? data.content.trim()
+            : typeof data.request === 'string' && data.request.trim()
+              ? data.request.trim()
+              : typeof data.question === 'string' && data.question.trim()
+                ? data.question.trim()
+                : '';
         const requestAttachments = mergeAttachments(undefined, data.metadata);
         if (requestText || requestAttachments) {
           controllerRef.current.addBotMessage(
@@ -334,6 +341,7 @@ export const useWebSocketChatTransport = ({
       if (data.type === 'error') {
         clearInteractiveState();
         controllerRef.current.setTyping(false);
+        controllerRef.current.setTypingStatus(undefined);
         controllerRef.current.addBotMessage(
           data.error || 'Something went wrong. Please try again.',
         );
@@ -372,6 +380,7 @@ export const useWebSocketChatTransport = ({
 
     touchActivity();
     controllerRef.current.setTyping(true);
+    controllerRef.current.setTypingStatus(undefined);
     wsRef.current.send(
       JSON.stringify({
         type: 'user_message',
@@ -389,6 +398,7 @@ export const useWebSocketChatTransport = ({
 
     touchActivity();
     controllerRef.current.setTyping(true);
+    controllerRef.current.setTypingStatus(undefined);
     const selections = Array.isArray(value) ? value : [value];
     const requestId = pendingInteractiveRequestIdRef.current;
     if (requestId) {

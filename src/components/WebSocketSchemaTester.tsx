@@ -188,7 +188,7 @@ const SAMPLE_AGENT_TIMEOUT: ChatWidgetWsAgentMessage = {
 const SAMPLE_INTERACTIVE_SINGLE: ChatWidgetWsInteractiveRequestMessage = {
   type: 'interactive_request',
   interactive_type: 'single_select',
-  request: 'Please choose one',
+  content: 'Please choose one',
   options: [
     { id: '1', label: 'Yes', value: 'yes' },
     { id: '2', label: 'No', value: 'no' },
@@ -202,7 +202,7 @@ const SAMPLE_INTERACTIVE_SINGLE: ChatWidgetWsInteractiveRequestMessage = {
 const SAMPLE_INTERACTIVE_MULTI: ChatWidgetWsInteractiveRequestMessage = {
   type: 'interactive_request',
   interactive_type: 'multi_select',
-  request: 'Select all that apply',
+  content: 'Select all that apply',
   options: [
     { id: '1', label: 'Option A', value: 'a' },
     { id: '2', label: 'Option B', value: 'b' },
@@ -217,7 +217,7 @@ const SAMPLE_INTERACTIVE_MULTI: ChatWidgetWsInteractiveRequestMessage = {
 const SAMPLE_INTERACTIVE_MULTI_WITH_IMAGES: ChatWidgetWsInteractiveRequestMessage = {
   type: 'interactive_request',
   interactive_type: 'multi_select',
-  request:
+  content:
     'Choose one or more products from these links: https://shop.example.com/product/alexis-platinum/ and https://shop.example.com/product/modern-linen/',
   options: [
     { id: '1', label: 'Alexis Platinum', value: 'alexis_platinum' },
@@ -255,6 +255,7 @@ const SAMPLE_ERROR = {
 const SAMPLE_TYPING_TRUE = {
   type: 'typing_indicator' as const,
   is_typing: true,
+  status: 'Murphy is fetching products...',
   timestamp: '2026-03-27T10:31:01.000000',
 };
 
@@ -275,6 +276,7 @@ export default function WebSocketSchemaTester() {
 
   const [previewMessages, setPreviewMessages] = useState<Message[]>([]);
   const [previewTyping, setPreviewTyping] = useState(false);
+  const [previewTypingStatus, setPreviewTypingStatus] = useState<string | undefined>(undefined);
   const [previewQuickButtons, setPreviewQuickButtons] = useState<QuickButton[]>([]);
   const [previewMultiSelect, setPreviewMultiSelect] = useState(false);
   const [previewSelectedValues, setPreviewSelectedValues] = useState<string[]>([]);
@@ -335,8 +337,12 @@ export default function WebSocketSchemaTester() {
       const typed = data as { type: string };
 
       if (typed.type === 'typing_indicator') {
-        const d = data as { is_typing?: boolean };
-        setPreviewTyping(Boolean(d.is_typing));
+        const d = data as { is_typing?: boolean; status?: string };
+        const isTyping = Boolean(d.is_typing);
+        setPreviewTyping(isTyping);
+        setPreviewTypingStatus(
+          isTyping && typeof d.status === 'string' ? d.status : undefined,
+        );
         return;
       }
 
@@ -352,6 +358,7 @@ export default function WebSocketSchemaTester() {
         }
 
         setPreviewTyping(false);
+        setPreviewTypingStatus(undefined);
         clearInteractivePreview();
 
         const next: Message[] = [];
@@ -382,6 +389,7 @@ export default function WebSocketSchemaTester() {
         const d = data as ChatWidgetWsAgentMessage;
         clearInteractivePreview();
         setPreviewTyping(false);
+        setPreviewTypingStatus(undefined);
         const attachments = mergeAttachments(d.attachments, d.metadata);
         if (d.content || attachments) {
           setPreviewMessages((prev) => [
@@ -407,11 +415,13 @@ export default function WebSocketSchemaTester() {
         }
         if (buttons.length > 0) {
           const prompt =
-            typeof d.request === 'string' && d.request.trim()
-              ? d.request.trim()
-              : typeof d.question === 'string' && d.question.trim()
-                ? d.question.trim()
-                : null;
+            typeof d.content === 'string' && d.content.trim()
+              ? d.content.trim()
+              : typeof d.request === 'string' && d.request.trim()
+                ? d.request.trim()
+                : typeof d.question === 'string' && d.question.trim()
+                  ? d.question.trim()
+                  : null;
           const requestAttachments = mergeAttachments(undefined, d.metadata);
           if (prompt || requestAttachments) {
             setPreviewMessages((prev) => [
@@ -439,6 +449,7 @@ export default function WebSocketSchemaTester() {
         const d = data as { error?: string };
         clearInteractivePreview();
         setPreviewTyping(false);
+        setPreviewTypingStatus(undefined);
         appendBotPreview(
           d.error?.trim() || 'Something went wrong. Please try again.',
         );
@@ -450,6 +461,7 @@ export default function WebSocketSchemaTester() {
   const resetPreview = useCallback(() => {
     setPreviewMessages([]);
     setPreviewTyping(false);
+    setPreviewTypingStatus(undefined);
     clearInteractivePreview();
     setPreviewSessionLabel(null);
   }, [clearInteractivePreview]);
@@ -493,6 +505,7 @@ export default function WebSocketSchemaTester() {
       payload = {
         type: 'typing_indicator',
         is_typing: isTyping,
+        status: isTyping ? 'Murphy is thinking...' : undefined,
       };
       applyInboundToPreview(payload);
     }
@@ -766,8 +779,13 @@ export default function WebSocketSchemaTester() {
                 />
               ))}
               {previewTyping && (
-                <div className="flex gap-1 p-2 rounded-2xl w-fit">
-                  <ThreeDot color={[PRIMARY_COLOR]} size="small" text="" textColor="" />
+                <div className="p-2 rounded-2xl w-fit">
+                  <div className="flex gap-1">
+                    <ThreeDot color={[PRIMARY_COLOR]} size="small" text="" textColor="" />
+                  </div>
+                  {previewTypingStatus && (
+                    <p className="mt-1 text-xs text-gray-500">{previewTypingStatus}</p>
+                  )}
                 </div>
               )}
             </div>

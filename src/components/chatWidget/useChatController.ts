@@ -67,6 +67,7 @@ export const useChatWidgetController = ({
   const [messages, setMessagesState] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [typingStatus, setTypingStatus] = useState<string | undefined>(undefined);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [defaultQuickButtons, setDefaultQuickButtons] = useState<QuickButton[]>(
@@ -163,6 +164,7 @@ export const useChatWidgetController = ({
       addMessage('bot', text, attachments, metadata),
     addUserMessage: (text, attachments) => addMessage('user', text, attachments),
     setTyping: setIsTyping,
+    setTypingStatus,
     setQuickButtons,
     resetQuickButtons,
     setInteractiveMode: setIsInteractiveMode,
@@ -404,6 +406,7 @@ export const useChatWidgetController = ({
     messages,
     inputMessage,
     isTyping,
+    typingStatus,
     unreadCount,
     pendingAttachments,
     quickButtons: activeQuickButtons,

@@ -8,14 +8,6 @@ import ChatWidget, {
 import useWebSocketChatTransport from './hooks/useChatTransport';
 import type { Attachment, ChatWidgetSendPayload } from './components/chatWidget/types/types';
 
-const DEFAULT_QUICK_BUTTONS = [
-  {
-    label: 'Contact Support',
-    value: 'I want to contact support',
-    selectionMode: 'single' as const,
-  },
-];
-
 const CHAT_WS_URL =
   import.meta.env.VITE_CHAT_WS_URL ?? 'ws://localhost:8000/ws/chat';
 const CHAT_SESSION_API_URL =
@@ -89,7 +81,7 @@ export default function ChatWidgetWithTransport() {
   });
 
   const controller = useChatWidgetController({
-    quickButtons: DEFAULT_QUICK_BUTTONS,
+    quickButtons: [],
     maxFiles: 5,
     onOpenChange: async (isOpen) => {
       if (isOpen) {
@@ -152,7 +144,6 @@ export default function ChatWidgetWithTransport() {
         acceptFileTypes="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
         maxFileSize={10 * 1024 * 1024}
         maxFiles={5}
-        allowFileUpload={true}
       />
     </ChatWidgetProvider>
   );

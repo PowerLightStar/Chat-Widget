@@ -50,6 +50,7 @@ export interface ChatControllerApi {
   ) => Message;
   addUserMessage: (text: string, attachments?: Attachment[]) => Message;
   setTyping: (value: boolean) => void;
+  setTypingStatus: (status?: string) => void;
   setQuickButtons: (buttons: QuickButton[]) => void;
   resetQuickButtons: () => void;
   setInteractiveMode: (value: boolean) => void;
@@ -60,6 +61,7 @@ export interface ChatWidgetController extends ChatControllerApi {
   messages: Message[];
   inputMessage: string;
   isTyping: boolean;
+  typingStatus?: string;
   unreadCount: number;
   pendingAttachments: Attachment[];
   quickButtons: QuickButton[];
@@ -169,6 +171,7 @@ export interface ChatWidgetWsSessionInitMessage {
 export interface ChatWidgetWsTypingIndicatorMessage {
   type: 'typing_indicator';
   is_typing?: boolean;
+  status?: string;
   timestamp?: string;
 }
 
@@ -186,6 +189,7 @@ export interface ChatWidgetWsInteractiveRequestMessage {
   interactive_type?: 'single_select' | 'multi_select';
   id?: string;
   request_id?: string;
+  content?: string;
   request?: string;
   question?: string;
   options?: Array<
