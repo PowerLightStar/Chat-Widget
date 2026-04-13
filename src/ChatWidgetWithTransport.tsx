@@ -6,7 +6,14 @@ import ChatWidget, {
   useChatWidgetController,
 } from './components/chatWidget';
 import useWebSocketChatTransport from './hooks/useChatTransport';
-import type { Attachment, ChatWidgetSendPayload } from './components/chatWidget/types/types';
+import type {
+  Attachment,
+  ChatWidgetSendPayload,
+  QuickButton,
+} from './components/chatWidget/types/types';
+
+/** Stable reference — inline `[]` in JSX would be a new array every render and break interactive quick buttons. */
+const NO_DEFAULT_QUICK_BUTTONS: QuickButton[] = [];
 
 const CHAT_WS_URL =
   import.meta.env.VITE_CHAT_WS_URL ?? 'ws://localhost:8000/ws/chat';
@@ -81,7 +88,7 @@ export default function ChatWidgetWithTransport() {
   });
 
   const controller = useChatWidgetController({
-    quickButtons: [],
+    quickButtons: NO_DEFAULT_QUICK_BUTTONS,
     maxFiles: 5,
     onOpenChange: async (isOpen) => {
       if (isOpen) {

@@ -81,8 +81,19 @@ export const useChatWidgetController = ({
   >([]);
   const [isInteractiveMode, setIsInteractiveMode] = useState(false);
   const hasShownInitialQuickButtonsRef = useRef(false);
+  /** Avoid re-syncing when parent passes an inline `[]` (new reference every render), which would wipe WebSocket-driven quick buttons. */
+  const lastQuickButtonsPropRef = useRef<QuickButton[] | undefined>(undefined);
 
   useEffect(() => {
+    const lastProp = lastQuickButtonsPropRef.current;
+    if (
+      lastProp !== undefined &&
+      areQuickButtonsEqual(lastProp, quickButtons)
+    ) {
+      return;
+    }
+    lastQuickButtonsPropRef.current = quickButtons;
+
     setDefaultQuickButtons((prev) =>
       areQuickButtonsEqual(prev, quickButtons) ? prev : quickButtons,
     );
