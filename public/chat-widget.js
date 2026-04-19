@@ -18,6 +18,7 @@
  * panel (default 400×640) + right/bottom inset + gap + launcher button + shadows.
  * Defaults: 460×760px. If you pass 400×640 it is auto-expanded to that outer box.
  * Collapsed: bubble or data-bubble-size (default 192px). Minimum 176px (ripple + mask).
+ * In collapsed mode we keep extra horizontal room so left-of-trigger tooltips are not clipped.
  */
 (function () {
   var SCRIPT_NAME = 'chat-widget.js'
@@ -171,6 +172,7 @@
     iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth) || 460)))
     iframe.height = String(Math.max(1, Math.round(parseFloat(expandedHeight) || 760)))
     var BUBBLE_MIN_PX = 176
+    var COLLAPSED_TOOLTIP_ROOM_PX = 340
     var collapsedSize = ensurePx(
       params.get('bubble') || s.getAttribute('data-bubble-size'),
       '192px',
@@ -179,13 +181,16 @@
     if (!isNaN(collapsedNum) && collapsedNum < BUBBLE_MIN_PX) {
       collapsedSize = BUBBLE_MIN_PX + 'px'
     }
+    var collapsedHeight = collapsedSize
+    var collapsedWidthNum = Math.max(parseFloat(collapsedSize) || 192, COLLAPSED_TOOLTIP_ROOM_PX)
+    var collapsedWidth = collapsedWidthNum + 'px'
 
     function setWidgetFrameOpen(isOpen) {
       if (pattern === 'inline') return
       applyAnchoring()
-      iframe.style.width = isOpen ? expandedWidth : collapsedSize
-      iframe.style.height = isOpen ? expandedHeight : collapsedSize
-      iframe.style.maxHeight = isOpen ? '90vh' : collapsedSize
+      iframe.style.width = isOpen ? expandedWidth : collapsedWidth
+      iframe.style.height = isOpen ? expandedHeight : collapsedHeight
+      iframe.style.maxHeight = isOpen ? '90vh' : collapsedHeight
       iframe.style.transition = 'width 180ms ease,height 180ms ease'
       // Collapsed: visible so ripple can paint; host still only sees the iframe box (extra chrome in width/height).
       iframe.style.overflow = isOpen ? 'hidden' : 'visible'
