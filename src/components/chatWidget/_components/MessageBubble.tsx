@@ -1,12 +1,12 @@
 import React from 'react';
 import type {
+  ChatWidgetAvatar,
   ChatWidgetProductCard,
   ChatWidgetWsMetadata,
   Message,
-  ChatWidgetAvatar,
 } from '../types/types';
 import FileAttachment from './FileAttachment';
-import type { IconType } from 'react-icons';
+import { renderChatAvatar } from './renderChatAvatar';
 
 type ProductUrlReplacement = { url: string; label: string; href: string };
 
@@ -98,16 +98,6 @@ const renderBotTextWithProductHighlights = (
   }
 
   return nodes.length === 1 && typeof nodes[0] === 'string' ? nodes[0] : <>{nodes}</>;
-};
-
-export const renderChatAvatar = (avatar: ChatWidgetAvatar): React.ReactNode => {
-  if (typeof avatar === 'string') {
-    return avatar;
-  }
-  if (React.isValidElement(avatar)) {
-    return avatar;
-  }
-  return React.createElement(avatar as IconType);
 };
 
 interface MessageBubbleProps {

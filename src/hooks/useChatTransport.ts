@@ -13,12 +13,19 @@ import type {
 
 type InteractiveOption = ChatWidgetWsInteractiveRequestMessage['options'];
 
+/** Client-side: drop persisted session id after this long with no WS traffic (see touchActivity). */
+export const DEFAULT_CHAT_SESSION_INACTIVITY_MS = 15 * 60 * 1000;
+
 interface UseWebSocketChatTransportOptions {
   controller: ChatWidgetController;
   wsUrl?: string;
   sessionApiUrl?: string;
   defaultSessionId?: string;
   storageKey?: string;
+  /**
+   * Idle window before the widget clears `sessionId` from memory and `localStorage`
+   * (no inbound/outbound WS activity resets the timer). Default {@link DEFAULT_CHAT_SESSION_INACTIVITY_MS}.
+   */
   inactivityTimeoutMs?: number;
   userId?: string;
   onWsOpen?: () => void;
@@ -132,7 +139,7 @@ export const useWebSocketChatTransport = ({
   sessionApiUrl,
   defaultSessionId,
   storageKey = 'chatSessionId',
-  inactivityTimeoutMs = 60_000,
+  inactivityTimeoutMs = DEFAULT_CHAT_SESSION_INACTIVITY_MS,
   userId = 'anonymous',
   onWsOpen,
   onWsClose,
@@ -220,6 +227,39 @@ export const useWebSocketChatTransport = ({
       return null;
     }
   }, [sessionApiUrl, sessionId, storageKey, touchActivity, userId]);
+
+  const startNewSession = useCallback(async () => {
+    clearInteractiveState();
+    controllerRef.current.setTyping(false);
+    controllerRef.current.setTypingStatus(undefined);
+    initializedSessionIdRef.current = null;
+    pendingInteractiveRequestIdRef.current = null;
+    localStorage.removeItem(storageKey);
+    setSessionId(null);
+
+    if (!sessionApiUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(sessionApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      const data = await response.json();
+      const nextSessionId = typeof data?.id === 'string' ? data.id : null;
+      if (nextSessionId) {
+        setSessionId(nextSessionId);
+        localStorage.setItem(storageKey, nextSessionId);
+        touchActivity();
+      }
+      return nextSessionId;
+    } catch (error) {
+      console.warn('Failed to create a new session:', error);
+      return null;
+    }
+  }, [clearInteractiveState, sessionApiUrl, storageKey, touchActivity, userId]);
 
   useEffect(() => {
     if (!wsUrl || !controller.isOpen) {
@@ -365,16 +405,7 @@ export const useWebSocketChatTransport = ({
       wsRef.current = null;
       setWsConnected(false);
     };
-  }, [
-    controller.isOpen,
-    onWsClose,
-    clearInteractiveState,
-    onWsMessage,
-    onWsOpen,
-    sessionId,
-    touchActivity,
-    wsUrl,
-  ]);
+  }, [controller.isOpen, onWsClose, clearInteractiveState, onWsMessage, onWsOpen, sessionId, touchActivity, wsUrl, storageKey]);
 
   const sendMessage = async ({ text }: ChatWidgetSendPayload) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
@@ -429,6 +460,7 @@ export const useWebSocketChatTransport = ({
     sessionId,
     wsConnected,
     createSession,
+    startNewSession,
     sendMessage,
     sendQuickButton,
   };

@@ -81,10 +81,12 @@ export default function ChatWidgetWithTransport() {
     sendMessage: (payload: ChatWidgetSendPayload) => Promise<boolean>;
     sendQuickButton: (value: string | string[]) => Promise<boolean>;
     createSession: () => Promise<string | null>;
+    startNewSession: () => Promise<string | null>;
   }>({
     sendMessage: async () => false,
     sendQuickButton: async () => false,
     createSession: async () => null,
+    startNewSession: async () => null,
   });
 
   const controller = useChatWidgetController({
@@ -151,6 +153,9 @@ export default function ChatWidgetWithTransport() {
         acceptFileTypes="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx"
         maxFileSize={10 * 1024 * 1024}
         maxFiles={5}
+        onStartNewConversation={async () => {
+          await transportRef.current.startNewSession();
+        }}
       />
     </ChatWidgetProvider>
   );

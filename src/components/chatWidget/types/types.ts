@@ -125,6 +125,12 @@ export interface ChatWidgetProps {
   isConnected?: boolean;
   /** When true (e.g. iframe embed), launcher inset matches box-shadow ripple spread so the pulse is not clipped. */
   embedded?: boolean;
+  /** Optional handler for the header list (menu) control, left of the bot avatar. */
+  onHeaderListClick?: () => void;
+  /** Footer line in the history hub (Home / Conversation). Default: Powered by Murphy AI */
+  conversationHubFooter?: string;
+  /** Triggered when user starts a brand-new conversation from the hub. */
+  onStartNewConversation?: () => Promise<void> | void;
 }
 
 export type ChatWidgetWsMessageType =
