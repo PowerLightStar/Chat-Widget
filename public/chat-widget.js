@@ -172,7 +172,7 @@
     iframe.width = String(Math.max(1, Math.round(parseFloat(expandedWidth) || 460)))
     iframe.height = String(Math.max(1, Math.round(parseFloat(expandedHeight) || 760)))
     var BUBBLE_MIN_PX = 176
-    var COLLAPSED_TOOLTIP_ROOM_PX = 340
+    var COLLAPSED_TOOLTIP_ROOM_PX = 380
     var collapsedSize = ensurePx(
       params.get('bubble') || s.getAttribute('data-bubble-size'),
       '192px',
