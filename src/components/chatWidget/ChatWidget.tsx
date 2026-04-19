@@ -47,6 +47,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [isHistoryViewOpen, setIsHistoryViewOpen] = useState(false);
   const [focusMessageId, setFocusMessageId] = useState<string | null>(null);
+  const [isLauncherTooltipVisible, setIsLauncherTooltipVisible] = useState(true);
   const [archivedConversations, setArchivedConversations] = useState<
     Array<{ id: string; messages: Message[] }>
   >([]);
@@ -68,6 +69,12 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
     if (!chat.isOpen) {
       setIsHistoryViewOpen(false);
       setFocusMessageId(null);
+    }
+  }, [chat.isOpen]);
+
+  useEffect(() => {
+    if (chat.isOpen) {
+      setIsLauncherTooltipVisible(false);
     }
   }, [chat.isOpen]);
 
@@ -422,28 +429,50 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({
       )}
 
       {!chat.isOpen && (
-        <button
-          type="button"
-          onClick={chat.toggleChat}
-          disabled={chat.isTyping}
-          className="relative z-1000 flex h-14 w-14 shrink-0 items-center justify-center overflow-visible rounded-full murphy-chat-trigger--idle"
-          style={{
-            backgroundColor: primaryColor,
-            ...({
-              ['--murphy-chat-primary' as string]: primaryColor,
-            } as React.CSSProperties),
-          }}
-          aria-label="Open chat"
-        >
-          <span className="relative z-10 text-2xl text-white">
-            <IoChatbubbleEllipsesOutline aria-hidden />
-          </span>
-          {chat.unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 z-20 bg-red-500 text-white rounded-full px-1.5 py-0.5 text-xs font-bold min-w-5">
-              {chat.unreadCount}
-            </span>
+        <div className="relative">
+          {isLauncherTooltipVisible && (
+            <div className="absolute right-[calc(100%+14px)] top-1/2 z-50 w-[260px] -translate-y-1/2 rounded-md bg-white shadow-xl border border-gray-200 overflow-visible">
+              <button
+                type="button"
+                onClick={() => setIsLauncherTooltipVisible(false)}
+                className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] text-gray-600 hover:bg-gray-300"
+                aria-label="Close launcher tip"
+                title="Close"
+              >
+                ×
+              </button>
+              <div className="border-t-2 border-orange-400 px-3 py-2.5 text-xs leading-relaxed text-gray-700">
+                Murphy AI is ready for you. Please click to chat with me.
+              </div>
+              <span
+                className="absolute right-[-8px] top-1/2 h-0 w-0 -translate-y-1/2 border-b-8 border-l-8 border-t-8 border-b-transparent border-l-white border-t-transparent"
+                aria-hidden
+              />
+            </div>
           )}
-        </button>
+          <button
+            type="button"
+            onClick={chat.toggleChat}
+            disabled={chat.isTyping}
+            className="relative z-1000 flex h-14 w-14 shrink-0 items-center justify-center overflow-visible rounded-full murphy-chat-trigger--idle"
+            style={{
+              backgroundColor: primaryColor,
+              ...({
+                ['--murphy-chat-primary' as string]: primaryColor,
+              } as React.CSSProperties),
+            }}
+            aria-label="Open chat"
+          >
+            <span className="relative z-10 text-2xl text-white">
+              <IoChatbubbleEllipsesOutline aria-hidden />
+            </span>
+            {chat.unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 z-20 bg-red-500 text-white rounded-full px-1.5 py-0.5 text-xs font-bold min-w-5">
+                {chat.unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
       )}
     </div>
   );
